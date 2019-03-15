@@ -30,27 +30,36 @@ male_id <- c(A91_id, A93_id, A94_id)
 data$sex <- NA
 data$sex[male_id] <- 'M'
 data$sex[-male_id] <- 'F'
+data$sex <- factor(data$sex)
 
+# Function that splits data into balanced train and test set
+splitData <- function(data, x) {
+  good_credit_risk <- which(data$credit_risk %in% 1)
+  bad_credit_risk <- which(data$credit_risk %in% 2)
+  train_good_id <- sample(good_credit_risk, x*length(good_credit_risk))
+  train_bad_id <- sample(bad_credit_risk, x*length(bad_credit_risk))
+  train_id <- sort(c(train_good_id, train_bad_id))
+  train <- data[train_id,]
+  test <- data[-train_id,]
+  split <- list(data[train_id,], data[-train_id,])
+  names(split) <- c("train", "test")
+  return(split)
+}
+
+# Create balanced train and test set (maybe use k-fold cross validation, which requires the caret library)
+train <- splitData(data, 0.8)$train
+test <- splitData(data, 0.8)$test
 
 
 # Create counterfactual data set
-data$sex <- NA
-data$sex[male_id] <- 'F'
-data$sex[-male_id] <- 'M'
+data_CF <- data
+data_CF$sex <- NA
+data_CF$sex[male_id] <- 'F'
+data_CF$sex[-male_id] <- 'M'
+data_CF$sex <- factor(data$sex)
 
-
-
-# Create balanced train and test set (maybe use k-fold cross validation, which requires the caret library)
-good_credit_risk <- which(data$credit_risk %in% 1)
-bad_credit_risk <- which(data$credit_risk %in% 2)
-
-train_good_id <- sample(good_credit_risk, 0.8*length(good_credit_risk))
-train_bad_id <- sample(bad_credit_risk, 0.8*length(bad_credit_risk))
-train_id <- sort(c(train_good_id, train_bad_id))
-
-train <- data[train_id,]
-test <- data[-train_id,]
-
+train_CF <- splitData(data_CF, 0.8)$train
+test_CF <- splitData(data_CF, 0.8)$test
 
 
 # Model from paper Path-specific counterfactual fairness
@@ -71,7 +80,17 @@ summary(model)
 
 # Prediction
 predictions_raw <- predict(model, newdata=test, type='response')
-predictions <- ifelse(predictions_raw > 0.5, 2, 1)
 
+sm.density.compare(predictions_raw, test$sex, xlab="Credit risk probability", model="equal")
+title("Density plot comparison of sex")
+
+predictions <- ifelse(predictions_raw > 0.5, 2, 1)
 error <- mean(predictions != test$credit_risk)
 print(paste('Accuracy:', 1-error))
+
+
+
+# Miscellaneous code
+d <- density(predictions_raw)
+plot(d, main="Density plot of predicted credit risk")
+polygon(d, col="grey", border="black") 
