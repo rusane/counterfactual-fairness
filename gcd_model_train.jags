@@ -1,0 +1,20 @@
+model {
+
+  b_u ~ dnorm(0, 1/25)
+  b_a ~ dnorm(0, 1/25)
+
+  tau ~ dgamma(0.01,0.01)
+  
+  for (i in 1:N) {
+    u[i] ~ dnorm(0, tau)
+  }
+
+  for (i in 1:N) {
+    logit(theta[i]) <- b_u * u[i] + b_a * a[i]
+  }
+
+  for (i in 1:N) {
+    y[i] ~ dbern(theta[i])
+  }
+  
+}
