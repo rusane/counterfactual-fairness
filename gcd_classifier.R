@@ -29,10 +29,11 @@ data$sex <- factor(data$sex)
 ### Training the model
 
 model = jags.model('gcd_model_train.jags',
-                   data = list('N' = N, 'y' = data$credit_risk, 'a'=data$sex),
+                   data = list('N' = N, 'y' = data$credit_risk, 'a' = data$sex, 
+                               'amt' = data$amount, 'dur' = data$duration),
                    n.chains = 4)
 
-samples = coda.samples(model, c('u'), n.iter = 2000)
+samples = coda.samples(model, c('u'), n.iter = 2000) # increase iterations if necessary for final model
 mcmcMat = as.matrix(samples , chains=TRUE )
 # u = mcmcMat[,"u"]
 colMeans(mcmcMat)
