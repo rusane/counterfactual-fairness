@@ -1,29 +1,46 @@
 model {
 
+  u_tau ~ dgamma(0.01,0.01)
+
+  y0 ~ dnorm(0, 1/25)
   y_u ~ dnorm(0, 1/25)
   y_a ~ dnorm(0, 1/25)
   y_amt ~ dnorm(0, 1/25)
   y_dur ~ dnorm(0, 1/25)
+  y_hous1 ~ dnorm(0, 1/25)
+  y_hous2 ~ dnorm(0, 1/25)
+  y_hous3 ~ dnorm(0, 1/25)
   
   amt0 ~ dnorm(0, 1/25)
   amt_u ~ dnorm(0, 1/25)
   amt_a ~ dnorm(0, 1/25)
+  amt_tau ~ dgamma(0.01,0.01)
   
   dur0 ~ dnorm(0, 1/25)
   dur_u ~ dnorm(0, 1/25)
   dur_a ~ dnorm(0, 1/25)
+  dur_tau ~ dgamma(0.01,0.01)
 
-  tau_u ~ dgamma(0.01,0.01)
-  tau_amt ~ dgamma(0.01,0.01)
-  tau_dur ~ dgamma(0.01,0.01)
+  hous0 ~ dnorm(0, 1/25)
+  hous1_u ~ dnorm(0, 1/25)
+  hous1_a ~ dnorm(0, 1/25)
+  hous2_u ~ dnorm(0, 1/25)
+  hous2_a ~ dnorm(0, 1/25)
+  hous3_u ~ dnorm(0, 1/25)
+  hous3_a ~ dnorm(0, 1/25)
 
   for (i in 1:N) {
-    u[i] ~ dnorm(0, tau_u)
+    u[i] ~ dnorm(0, u_tau)
     
-    amt[i] ~ dnorm(amt0 + amt_u * u[i] + amt_a * a[i], tau_amt)
-    dur[i] ~ dnorm(dur0 + dur_u * u[i] + dur_a * a[i], tau_dur)
+    amt[i] ~ dnorm(amt0 + amt_u * u[i] + amt_a * a[i], amt_tau)
+    dur[i] ~ dnorm(dur0 + dur_u * u[i] + dur_a * a[i], dur_tau)
     
-    logit(theta[i]) <- y_u * u[i] + y_a * a[i] + y_amt * amt[i] +  y_dur * dur[i]
+    hous1[i] ~ dbern( 1 / (1 + exp(-(hous0 + hous1_u * u[i] + hous1_a * a[i]))) )
+    hous2[i] ~ dbern( 1 / (1 + exp(-(hous0 + hous2_u * u[i] + hous2_a * a[i]))) )
+    hous3[i] ~ dbern( 1 / (1 + exp(-(hous0 + hous3_u * u[i] + hous3_a * a[i]))) )
+    
+    logit(theta[i]) <- y0 + y_u * u[i] + y_a * a[i] + y_amt * amt[i] +  y_dur * dur[i] +
+      y_hous1 * hous1[i] + y_hous2 * hous2[i] + y_hous3 * hous3[i]
     
     y[i] ~ dbern(theta[i])
   }
