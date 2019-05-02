@@ -5,8 +5,8 @@ model {
   for (i in 1:N) {
     u[i] ~ dnorm(0, u_tau)
     
-    amt[i] ~ dnorm(amt0 + amt_u * u[i] + amt_a * a[i], amt_tau)
-    dur[i] ~ dnorm(dur0 + dur_u * u[i] + dur_a * a[i], dur_tau)
+    amt[i] ~ dnorm(amt0 + amt_u * u[i] + amt_a * a[i] + amt_c * age[i], amt_tau)
+    dur[i] ~ dnorm(dur0 + dur_u * u[i] + dur_a * a[i] + dur_c * age[i], dur_tau)
   }
   
 }

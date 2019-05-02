@@ -7,24 +7,27 @@ model {
   y_a ~ dnorm(0, 1/25)
   y_amt ~ dnorm(0, 1/25)
   y_dur ~ dnorm(0, 1/25)
+  y_age ~ dnorm(0, 1/25)
   
   amt0 ~ dnorm(0, 1/25)
   amt_u ~ dnorm(0, 1/25)
   amt_a ~ dnorm(0, 1/25)
+  amt_c ~ dnorm(0, 1/25)
   amt_tau ~ dgamma(0.01,0.01)
   
   dur0 ~ dnorm(0, 1/25)
   dur_u ~ dnorm(0, 1/25)
   dur_a ~ dnorm(0, 1/25)
+  dur_c ~ dnorm(0, 1/25)
   dur_tau ~ dgamma(0.01,0.01)
 
   for (i in 1:N) {
     u[i] ~ dnorm(0, u_tau)
     
-    amt[i] ~ dnorm(amt0 + amt_u * u[i] + amt_a * a[i], amt_tau)
-    dur[i] ~ dnorm(dur0 + dur_u * u[i] + dur_a * a[i], dur_tau)
+    amt[i] ~ dnorm(amt0 + amt_u * u[i] + amt_a * a[i] + amt_c * age[i], amt_tau)
+    dur[i] ~ dnorm(dur0 + dur_u * u[i] + dur_a * a[i] + dur_c * age[i], dur_tau)
     
-    logit(theta[i]) <- y0 + y_u * u[i] + y_a * a[i] + y_amt * amt[i] +  y_dur * dur[i]
+    logit(theta[i]) <- y0 + y_u * u[i] + y_a * a[i] + y_amt * amt[i] +  y_dur * dur[i] + y_age * age[i]
     
     y[i] ~ dbern(theta[i])
   }
