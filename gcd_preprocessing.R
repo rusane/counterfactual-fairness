@@ -23,6 +23,30 @@ data$sex[-male_idx] <- '1' # female
 vars <- c("status", "duration", "amount", "savings", "age", "housing", "sex", "credit_risk")
 data <- data[, vars]
 
+
+# Numerical
+data$status <- as.vector(data$status)
+data$status[data$status == "A11"] <- 1
+data$status[data$status == "A12"] <- 2
+data$status[data$status == "A13"] <- 3
+data$status[data$status == "A14"] <- 4
+
+data$savings <- as.vector(data$savings)
+data$savings[data$savings == "A61"] <- 1
+data$savings[data$savings == "A62"] <- 2
+data$savings[data$savings == "A63"] <- 3
+data$savings[data$savings == "A64"] <- 4
+data$savings[data$savings == "A65"] <- 5
+
+data$housing <- as.vector(data$housing)
+data$housing[data$housing == "A151"] <- 1
+data$housing[data$housing == "A152"] <- 2
+data$housing[data$housing == "A153"] <- 3
+
+save(data, file="gcd_data_num.Rdata")
+
+
+
 # One hot encoding of all remaining categorical variables
 levels(data$status) # 4 levels
 data$status1 <- as.numeric(data$status == "A11")

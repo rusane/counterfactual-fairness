@@ -39,10 +39,10 @@ samples = coda.samples(model, c('u',
                                 'dur0', 'dur_u', 'dur_a', 'dur_tau', 'dur_c'
 #                                'stat1_u', 'stat1_a', 'stat2_u', 'stat2_a', 'stat3_u', 'stat3_a', 'stat4_u', 'stat4_a',
 #                                'stat10', 'stat20', 'stat30', 'stat40'
-#                                'y0', 'y_u', 'y_a', 'y_amt', 'y_dur' 
+#                                'y0', 'y_u', 'y_a', 'y_amt', 'y_dur', 'y_c'
                                 ), 
                        n.iter = 2000) # increase iterations if necessary for final model
-# save(samples, file='mcmc_samples.Rdata')
+#save(samples, file='mcmc_samples.Rdata')
 mcmcMat = as.matrix(samples , chains=TRUE )
 means <- colMeans(mcmcMat)
 
@@ -63,6 +63,7 @@ dur_c <- means["dur_c"]
 #y_a <- means["y_a"]
 #y_amt <- means["y_amt"]
 #y_dur <- means["y_dur"]
+#y_c <- means["y_c"]
 
 #stat10 <- means["stat10"]
 #stat20 <- means["stat20"]
@@ -78,6 +79,7 @@ dur_c <- means["dur_c"]
 #stat4_a <- means["stat4_a"]
 
 u_train <- means[12:length(means)]
+#u_train <- means[12:(length(means)-6)]
 
 
 ### Learning u for test data using learned parameters
@@ -93,7 +95,7 @@ model_test = jags.model('gcd_model_u.jags',
 #                               'stat3_u' = stat3_u, 'stat3_a' = stat3_a,
 #                               'stat4_u' = stat4_u, 'stat4_a' = stat4_a,
 #                               'stat10' = stat10, 'stat20' = stat20, 'stat30' = stat30, 'stat40' = stat40
-#                               'y0' = y0, 'y_u' = y_u, 'y_a' = y_a, 'y_amt' = y_amt, 'y_dur' = y_dur 
+#                               'y0' = y0, 'y_u' = y_u, 'y_a' = y_a, 'y_amt' = y_amt, 'y_dur' = y_dur, 'y_c' = y_c
                    ),
                    n.chains = 4)
 
@@ -112,6 +114,7 @@ model_test_CF = jags.model('gcd_model_u.jags',
                                     'age' = test_CF$age,
                                     'amt0' = amt0, 'amt_u' = amt_u, 'amt_a' = amt_a, 'amt_tau' = amt_tau, 'amt_c' = amt_c,
                                     'dur0' = dur0, 'dur_u' = dur_u, 'dur_a' = dur_a, 'dur_tau' = dur_tau, 'dur_c' = dur_c
+#                                    'y0' = y0, 'y_u' = y_u, 'y_a' = y_a, 'y_amt' = y_amt, 'y_dur' = y_dur, 'y_c' = y_c
                         ),
                         n.chains = 4)
 samples_u_CF = coda.samples(model_test_CF, c('u'), n.iter = 2000) # increase iterations if necessary for final model
