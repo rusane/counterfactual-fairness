@@ -4,7 +4,7 @@ library(sm)
 load("gcd_data_num.Rdata")
 N <- dim(data)[1]
 
-set.seed(0)
+set.seed(42)
 trainIndex <- createDataPartition(data$credit_risk, p = .8, 
                                   list = FALSE, 
                                   times = 1)
@@ -21,7 +21,7 @@ test_CF$sex[male_test_idx] <- '1'
 test_CF$sex[-male_test_idx] <- '0'
 
 # Full model
-full <- glm(credit_risk ~ . - housing - status - savings, family=binomial("logit"), data=train)
+full <- glm(credit_risk ~ . - housing - savings - status, family=binomial("logit"), data=train)
 
 predictions_raw_full <- predict(full, newdata=test, type='response')
 predictions_full <- ifelse(predictions_raw_full > 0.5, 1, 0)
@@ -51,13 +51,17 @@ f_compare_unfair <- rbind(f_compare_full, f_compare_full_CF)
 #compare_distr <- rbind(orig_pred, cf_pred)
 
 # Comparison
+cols = c("black", "red")
+sm.options(col=cols, lty=c(1,1), lwd=2)
+
 sm.density.compare(m_compare_unfair$pred, m_compare_unfair$type, xlab="Credit risk probability", model="equal")
 title("Density plot comparison of sex (M)")
-legend("topright", legend=levels(m_compare_unfair$type), fill=2+(0:nlevels(m_compare_unfair$type)))
+legend("topright", legend=levels(m_compare_unfair$type), fill=cols)
 
 sm.density.compare(f_compare_unfair$pred, f_compare_unfair$type, xlab="Credit risk probability", model="equal")
 title("Density plot comparison of sex (F)")
-legend("topright", legend=levels(f_compare_unfair$type), fill=2+(0:nlevels(f_compare_unfair$type)))
+legend("topright", legend=levels(f_compare_unfair$type), fill=cols)
+
 
 #sm.density.compare(compare_distr$pred, compare_distr$type, xlab="Credit risk probability", model="equal")
 #title("Density plot comparison of sex")

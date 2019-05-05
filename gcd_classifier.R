@@ -9,7 +9,7 @@ N <- dim(data)[1]
 
 # seed=0 results in only probabilities lower than 0.5, i.e. 'always' predicts good credit (bad if confusion matrix is taken into account)
 # seed=1 overfits the data as the train accuracy >> test accuracy
-set.seed(1)
+set.seed(42)
 trainIndex <- createDataPartition(data$credit_risk, p = .8, 
                                   list = FALSE, 
                                   times = 1)
@@ -34,7 +34,9 @@ model = jags.model('gcd_model_train.jags',
                                'age' = train$age
 #                               'stat1' = train$status1, 'stat2' = train$status2, 'stat3' = train$status3, 'stat4' = train$status4
                                ),
-                   n.chains = 4)
+                   inits = list('amt0' = 3200, 'dur0' = 20, 'amt_tau' = 1/(2800^2), 'dur_tau' = 1/(12^2)),
+                   n.chains = 4,
+                   n.adapt = 100)
 
 samples = coda.samples(model, c('u', 
                                 'amt0', 'amt_u', 'amt_a', 'amt_tau', 'amt_c',
@@ -43,8 +45,13 @@ samples = coda.samples(model, c('u',
 #                                'stat10', 'stat20', 'stat30', 'stat40'
 #                                'y0', 'y_u', 'y_a', 'y_amt', 'y_dur', 'y_c'
                                 ), 
-                       n.iter = 10000)
-#save(samples, file='seed2.Rdata')
+                       n.iter = 4000)
+#save(samples, file='seed42.Rdata')
+
+params <- c("u[13]")
+plot(samples[,params])
+gelman.diag(samples[,params])
+gelman.plot(samples[,params])
 
 mcmcMat = as.matrix(samples , chains=TRUE )
 means <- colMeans(mcmcMat)
@@ -100,9 +107,10 @@ model_test = jags.model('gcd_model_u.jags',
 #                               'stat10' = stat10, 'stat20' = stat20, 'stat30' = stat30, 'stat40' = stat40
 #                               'y0' = y0, 'y_u' = y_u, 'y_a' = y_a, 'y_amt' = y_amt, 'y_dur' = y_dur, 'y_c' = y_c
                    ),
-                   n.chains = 4)
+                   n.chains = 4,
+                   n.adapt = 100)
 
-samples_u = coda.samples(model_test, c('u'), n.iter = 10000)
+samples_u = coda.samples(model_test, c('u'), n.iter = 4000)
 # save(samples_u, file='mcmc_samples.Rdata')
 mcmcMat_u = as.matrix(samples_u , chains=TRUE )
 # u = mcmcMat[,"u"]
@@ -119,8 +127,9 @@ model_test_CF = jags.model('gcd_model_u.jags',
                                     'dur0' = dur0, 'dur_u' = dur_u, 'dur_a' = dur_a, 'dur_tau' = dur_tau, 'dur_c' = dur_c
 #                                    'y0' = y0, 'y_u' = y_u, 'y_a' = y_a, 'y_amt' = y_amt, 'y_dur' = y_dur, 'y_c' = y_c
                         ),
-                        n.chains = 4)
-samples_u_CF = coda.samples(model_test_CF, c('u'), n.iter = 10000)
+                        n.chains = 4,
+                        n.adapt = 100)
+samples_u_CF = coda.samples(model_test_CF, c('u'), n.iter = 4000)
 mcmcMat_u_CF = as.matrix(samples_u_CF , chains=TRUE )
 # u = mcmcMat[,"u"]
 u_test_CF <- colMeans(mcmcMat_u_CF)
@@ -168,11 +177,11 @@ pred_f_CF <- predictions_raw_CF[-male_test_idx]
 f_compare_CF <- data.frame(pred=pred_f_CF, type=as.factor(rep("counterfactual", length(pred_f_CF))))
 f_compare <- rbind(f_compare_te, f_compare_CF)
 
-#orig_pred <- data.frame(pred=predictions_raw_te, type=as.factor(rep("original", length(predictions_raw_te))))
-#cf_pred <- data.frame(pred=predictions_raw_CF, type=as.factor(rep("counterfactual", length(predictions_raw_CF))))
-#compare_distr <- rbind(orig_pred, cf_pred)
 
 # Comparison
+cols = c("black", "red")
+sm.options(col=cols, lty=c(1,2), lwd=2)
+
 sm.density.compare(m_compare$pred, m_compare$type, xlab="Credit risk probability", model="equal")
 title("Density plot comparison of sex (M)")
 legend("topright", legend=levels(m_compare$type), fill=2+(0:nlevels(m_compare$type)))
@@ -181,7 +190,25 @@ sm.density.compare(f_compare$pred, f_compare$type, xlab="Credit risk probability
 title("Density plot comparison of sex (F)")
 legend("topright", legend=levels(f_compare$type), fill=2+(0:nlevels(f_compare$type)))
 
-#sm.density.compare(compare_distr$pred, compare_distr$type, xlab="Credit risk probability", model="equal")
-#title("Density plot comparison of sex")
-#legend("topright", legend=levels(compare_distr$type), fill=2+(0:nlevels(compare_distr$type)))
+# Statistical fairness
+male_pred <- predictions_te[male_test_idx]
+male_te <- test$credit_risk[male_test_idx]
+female_pred <- predictions_te[-male_test_idx]
+female_te <- test$credit_risk[-male_test_idx]
+
+demographic_parity_m <- length(male_pred[male_pred==1])/length(male_pred); demographic_parity_m
+demographic_parity_f <- length(female_pred[female_pred==1])/length(female_pred); demographic_parity_f
+
+# TPR = TP / (TP + FN)
+male_TP <- sum(male_pred[male_te == 1] == male_te[male_te == 1])
+male_TPR <- male_TP / length(male_te[male_te==1]); male_TPR
+female_TP <- sum(female_pred[female_te == 1] == female_te[female_te == 1])
+female_TPR <- female_TP / length(female_te[female_te==1]); female_TPR
+
+# FPR = FP / (FP + TN)
+male_FP <- sum(male_pred[male_te == 0] == male_te[male_te == 0])
+male_FPR <- male_FP / length(male_te[male_te==0]); male_FPR
+female_FP <- sum(female_pred[female_te == 0] == female_te[female_te == 0])
+female_FPR <- female_FP / length(female_te[female_te==0]); female_FPR
+
 
