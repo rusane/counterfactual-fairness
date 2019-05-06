@@ -206,9 +206,9 @@ female_TP <- sum(female_pred[female_te == 1] == female_te[female_te == 1])
 female_TPR <- female_TP / length(female_te[female_te==1]); female_TPR
 
 # FPR = FP / (FP + TN)
-male_FP <- sum(male_pred[male_te == 0] == male_te[male_te == 0])
+male_FP <- sum(male_pred[male_te == 0] != male_te[male_te == 0])
 male_FPR <- male_FP / length(male_te[male_te==0]); male_FPR
-female_FP <- sum(female_pred[female_te == 0] == female_te[female_te == 0])
+female_FP <- sum(female_pred[female_te == 0] != female_te[female_te == 0])
 female_FPR <- female_FP / length(female_te[female_te==0]); female_FPR
 
 
