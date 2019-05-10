@@ -24,10 +24,6 @@ test_CF$sex[-male_test_idx] <- '0'
 ### Training the model
 load.module("glm")
 
-#cut_hous = c(rnorm(1, -0.5), rnorm(1, 1))
-#cut_sav = c(rnorm(1, -3), rnorm(1, -1), rnorm(1, 1), rnorm(1, 3))
-#cut_stat = c(rnorm(1, -2), rnorm(1, 0), rnorm(1, 2))
-
 cut_hous = c(-0.5, 0.5)
 cut_sav = c(-1.5, -0.5, 0.5, 1.5)
 cut_stat = c(-1, 0, 1)
@@ -39,9 +35,7 @@ model = jags.model('gcd_model_train.jags',
                                'hous' = train$housing, 'sav' = train$savings, 'stat' = train$status,
                                'nhous' = 2, 'nsav' = 4, 'nstat' = 3,
                                'cut_hous' = cut_hous, 'cut_sav' = cut_sav, 'cut_stat' = cut_stat
-#                               'stat1' = train$status1, 'stat2' = train$status2, 'stat3' = train$status3, 'stat4' = train$status4
                                ),
-#                   inits = list('amt0' = 3200, 'dur0' = 20, 'amt_tau' = 1/(2800^2), 'dur_tau' = 1/(12^2)),
                    n.chains = 4,
                    n.adapt = 100)
 
@@ -51,10 +45,6 @@ samples = coda.samples(model, c('u',
                                 'hous0', 'hous_u', 'hous_a', 'hous_c',
                                 'sav0', 'sav_u', 'sav_a', 'sav_c',
                                 'stat0', 'stat_u', 'stat_a', 'stat_c'
-#                                'cut_hous', 'cut_sav', 'cut_stat'
-#                                'stat1_u', 'stat1_a', 'stat2_u', 'stat2_a', 'stat3_u', 'stat3_a', 'stat4_u', 'stat4_a',
-#                                'stat10', 'stat20', 'stat30', 'stat40'
-#                                'y0', 'y_u', 'y_a', 'y_amt', 'y_dur', 'y_c'
                                 ), 
                        n.iter = 8000)
 #save(samples, file='seed42_new.Rdata')
@@ -94,36 +84,11 @@ stat_u <- means["stat_u"]
 stat_a <- means["stat_a"]
 stat_c <- means["stat_c"]
 
-#cut_hous <- means["cut_hous"]
-#cut_sav <- means["cut_sav"]
-#cut_stat <- means["cut_stat"]
-
-#y0 <- means["y0"]
-#y_u <- means["y_u"]
-#y_a <- means["y_a"]
-#y_amt <- means["y_amt"]
-#y_dur <- means["y_dur"]
-#y_c <- means["y_c"]
-
-#stat10 <- means["stat10"]
-#stat20 <- means["stat20"]
-#stat30 <- means["stat30"]
-#stat40 <- means["stat40"]
-#stat1_u <- means["stat1_u"]
-#stat1_a <- means["stat1_a"]
-#stat2_u <- means["stat2_u"]
-#stat2_a <- means["stat2_a"]
-#stat3_u <- means["stat3_u"]
-#stat3_a <- means["stat3_a"]
-#stat4_u <- means["stat4_u"]
-#stat4_a <- means["stat4_a"]
-
 u_train <- means[24:length(means)]
-#u_train <- means[12:(length(means)-6)]
+
 
 
 ### Learning u for test data using learned parameters
-
 model_test = jags.model('gcd_model_u.jags',
                    data = list('N' = N_test, 'a' = test$sex, 
                                'amt' = test$amount, 'dur' = test$duration,
@@ -135,22 +100,16 @@ model_test = jags.model('gcd_model_u.jags',
                                'stat0' = stat0, 'stat_u' = stat_u, 'stat_a' = stat_a, 'stat_c' = stat_c,
                                'nhous' = 2, 'nsav' = 4, 'nstat' = 3,
                                'cut_hous' = cut_hous, 'cut_sav' = cut_sav, 'cut_stat' = cut_stat
-#                               'stat1_u' = stat1_u, 'stat1_a' = stat1_a, 
-#                               'stat2_u' = stat2_u, 'stat2_a' = stat2_a, 
-#                               'stat3_u' = stat3_u, 'stat3_a' = stat3_a,
-#                               'stat4_u' = stat4_u, 'stat4_a' = stat4_a,
-#                               'stat10' = stat10, 'stat20' = stat20, 'stat30' = stat30, 'stat40' = stat40
-#                               'y0' = y0, 'y_u' = y_u, 'y_a' = y_a, 'y_amt' = y_amt, 'y_dur' = y_dur, 'y_c' = y_c
                    ),
                    n.chains = 4,
                    n.adapt = 100)
 
 samples_u = coda.samples(model_test, c('u'), n.iter = 8000)
-# save(samples_u, file='mcmc_samples.Rdata')
 mcmcMat_u = as.matrix(samples_u , chains=TRUE )
 # u = mcmcMat[,"u"]
 u_test <- colMeans(mcmcMat_u)
 u_test <- u_test[2:length(u_test)]
+
 
 
 ### CF model
@@ -165,13 +124,11 @@ model_test_CF = jags.model('gcd_model_u.jags',
                                     'stat0' = stat0, 'stat_u' = stat_u, 'stat_a' = stat_a, 'stat_c' = stat_c,
                                     'nhous' = 2, 'nsav' = 4, 'nstat' = 3,
                                     'cut_hous' = cut_hous, 'cut_sav' = cut_sav, 'cut_stat' = cut_stat
-#                                    'y0' = y0, 'y_u' = y_u, 'y_a' = y_a, 'y_amt' = y_amt, 'y_dur' = y_dur, 'y_c' = y_c
                         ),
                         n.chains = 4,
                         n.adapt = 100)
 samples_u_CF = coda.samples(model_test_CF, c('u'), n.iter = 8000)
 mcmcMat_u_CF = as.matrix(samples_u_CF , chains=TRUE )
-# u = mcmcMat[,"u"]
 u_test_CF <- colMeans(mcmcMat_u_CF)
 u_test_CF <- u_test_CF[2:length(u_test_CF)]
 
@@ -230,6 +187,7 @@ sm.density.compare(f_compare$pred, f_compare$type, xlab="Credit risk probability
 title("Density plot comparison of sex (F)")
 legend("topright", legend=levels(f_compare$type), fill=2+(0:nlevels(f_compare$type)))
 
+
 # Statistical fairness
 male_pred <- predictions_te[male_test_idx]
 male_te <- test$credit_risk[male_test_idx]
@@ -250,5 +208,3 @@ male_FP <- sum(male_pred[male_te == 0] != male_te[male_te == 0])
 male_FPR <- male_FP / length(male_te[male_te==0]); male_FPR
 female_FP <- sum(female_pred[female_te == 0] != female_te[female_te == 0])
 female_FPR <- female_FP / length(female_te[female_te==0]); female_FPR
-
-
