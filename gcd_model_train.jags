@@ -8,6 +8,9 @@ model {
   y_amt ~ dnorm(0, 1)
   y_dur ~ dnorm(0, 1)
   y_c ~ dnorm(0, 1)
+  y_hous ~ dnorm(0, 1)
+  y_sav ~ dnorm(0, 1)
+  y_stat ~ dnorm(0, 1)
   
   amt0 ~ dnorm(0, 1)
   amt_u ~ dnorm(0, 1)
@@ -20,6 +23,21 @@ model {
   dur_a ~ dnorm(0, 1)
   dur_c ~ dnorm(0, 1)
   dur_tau ~ dgamma(0.01,0.01)
+  
+  hous0 ~ dnorm(0, 1)
+  hous_u ~ dnorm(0, 1)
+  hous_a ~ dnorm(0, 1)
+  hous_c ~ dnorm(0, 1)
+
+  sav0 ~ dnorm(0, 1)
+  sav_u ~ dnorm(0, 1)
+  sav_a ~ dnorm(0, 1)
+  sav_c ~ dnorm(0, 1)
+  
+  stat0 ~ dnorm(0, 1)
+  stat_u ~ dnorm(0, 1)
+  stat_a ~ dnorm(0, 1)
+  stat_c ~ dnorm(0, 1)
 
   for (i in 1:N) {
     u[i] ~ dnorm(0, u_tau)
@@ -27,7 +45,13 @@ model {
     amt[i] ~ dnorm(amt0 + amt_u * u[i] + amt_a * a[i] + amt_c * age[i], amt_tau)
     dur[i] ~ dnorm(dur0 + dur_u * u[i] + dur_a * a[i] + dur_c * age[i], dur_tau)
     
-    logit(theta[i]) <- y0 + y_u * u[i] + y_a * a[i] + y_amt * amt[i] +  y_dur * dur[i] + y_c * age[i]
+    hous[i] ~ dordered.probit(hous0 + hous_u * u[i] + hous_a * a[i] + hous_c * age[i], cut_hous[1:nhous])
+    sav[i] ~ dordered.probit(sav0 + sav_u * u[i] + sav_a * a[i] + sav_c * age[i], cut_sav[1:nsav])
+    stat[i] ~ dordered.probit(stat0 + stat_u * u[i] + stat_a * a[i] + stat_c * age[i], cut_stat[1:nstat])
+    
+    logit(theta[i]) <- y0 + y_u * u[i] + y_a * a[i] + 
+      y_amt * amt[i] + y_dur * dur[i] + y_c * age[i] + 
+      y_hous * hous[i] + y_sav * sav[i] + y_stat * stat[i]
     
     y[i] ~ dbern(theta[i])
   }

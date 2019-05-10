@@ -3,22 +3,17 @@ require(coda)
 library(caret)
 library(sm)
 
-
 load("gcd_data.Rdata")
 N <- dim(data)[1]
 
-# seed=0 results in only probabilities lower than 0.5, i.e. 'always' predicts good credit (bad if confusion matrix is taken into account)
-# seed=1 overfits the data as the train accuracy >> test accuracy
 set.seed(42)
-trainIndex <- createDataPartition(data$credit_risk, p = .8, 
-                                  list = FALSE, 
-                                  times = 1)
+trainIndex <- createDataPartition(data$credit_risk, p = .8, list = FALSE, times = 1)
 train <- data[trainIndex,]
 test <- data[-trainIndex,]
-
 N_train <- dim(train)[1]
 N_test <- dim(test)[1]
 
+# TO-REMOVE: not correct way of showing counterfactual fairness, need to sample data from JAGS model
 # Create counterfactual test set
 test_CF <- test
 male_test_idx <- which(test_CF$sex %in% '0')
@@ -27,11 +22,23 @@ test_CF$sex[-male_test_idx] <- '0'
 
 
 ### Training the model
+load.module("glm")
+
+#cut_hous = c(rnorm(1, -0.5), rnorm(1, 1))
+#cut_sav = c(rnorm(1, -3), rnorm(1, -1), rnorm(1, 1), rnorm(1, 3))
+#cut_stat = c(rnorm(1, -2), rnorm(1, 0), rnorm(1, 2))
+
+cut_hous = c(-0.5, 0.5)
+cut_sav = c(-1.5, -0.5, 0.5, 1.5)
+cut_stat = c(-1, 0, 1)
 
 model = jags.model('gcd_model_train.jags',
                    data = list('N' = N_train, 'y' = train$credit_risk, 'a' = train$sex, 
                                'amt' = train$amount, 'dur' = train$duration,
-                               'age' = train$age
+                               'age' = train$age,
+                               'hous' = train$housing, 'sav' = train$savings, 'stat' = train$status,
+                               'nhous' = 2, 'nsav' = 4, 'nstat' = 3,
+                               'cut_hous' = cut_hous, 'cut_sav' = cut_sav, 'cut_stat' = cut_stat
 #                               'stat1' = train$status1, 'stat2' = train$status2, 'stat3' = train$status3, 'stat4' = train$status4
                                ),
 #                   inits = list('amt0' = 3200, 'dur0' = 20, 'amt_tau' = 1/(2800^2), 'dur_tau' = 1/(12^2)),
@@ -40,15 +47,19 @@ model = jags.model('gcd_model_train.jags',
 
 samples = coda.samples(model, c('u', 
                                 'amt0', 'amt_u', 'amt_a', 'amt_tau', 'amt_c',
-                                'dur0', 'dur_u', 'dur_a', 'dur_tau', 'dur_c'
+                                'dur0', 'dur_u', 'dur_a', 'dur_tau', 'dur_c',
+                                'hous0', 'hous_u', 'hous_a', 'hous_c',
+                                'sav0', 'sav_u', 'sav_a', 'sav_c',
+                                'stat0', 'stat_u', 'stat_a', 'stat_c'
+#                                'cut_hous', 'cut_sav', 'cut_stat'
 #                                'stat1_u', 'stat1_a', 'stat2_u', 'stat2_a', 'stat3_u', 'stat3_a', 'stat4_u', 'stat4_a',
 #                                'stat10', 'stat20', 'stat30', 'stat40'
 #                                'y0', 'y_u', 'y_a', 'y_amt', 'y_dur', 'y_c'
                                 ), 
-                       n.iter = 4000)
-#save(samples, file='seed42.Rdata')
+                       n.iter = 8000)
+#save(samples, file='seed42_new.Rdata')
 
-params <- c("u[402]")
+params <- c("u[500]")
 plot(samples[,params])
 gelman.diag(samples[,params])
 gelman.plot(samples[,params])
@@ -67,6 +78,25 @@ dur_u <- means["dur_u"]
 dur_a <- means["dur_a"]
 dur_tau <- means["dur_tau"]
 dur_c <- means["dur_c"]
+
+hous0 <- means["hous0"]
+hous_u <- means["hous_u"]
+hous_a <- means["hous_a"]
+hous_c <- means["hous_c"]
+
+sav0 <- means["sav0"]
+sav_u <- means["sav_u"]
+sav_a <- means["sav_a"]
+sav_c <- means["sav_c"]
+
+stat0 <- means["stat0"]
+stat_u <- means["stat_u"]
+stat_a <- means["stat_a"]
+stat_c <- means["stat_c"]
+
+#cut_hous <- means["cut_hous"]
+#cut_sav <- means["cut_sav"]
+#cut_stat <- means["cut_stat"]
 
 #y0 <- means["y0"]
 #y_u <- means["y_u"]
@@ -88,7 +118,7 @@ dur_c <- means["dur_c"]
 #stat4_u <- means["stat4_u"]
 #stat4_a <- means["stat4_a"]
 
-u_train <- means[12:length(means)]
+u_train <- means[24:length(means)]
 #u_train <- means[12:(length(means)-6)]
 
 
@@ -99,7 +129,12 @@ model_test = jags.model('gcd_model_u.jags',
                                'amt' = test$amount, 'dur' = test$duration,
                                'age' = test$age,
                                'amt0' = amt0, 'amt_u' = amt_u, 'amt_a' = amt_a, 'amt_tau' = amt_tau, 'amt_c' = amt_c,
-                               'dur0' = dur0, 'dur_u' = dur_u, 'dur_a' = dur_a, 'dur_tau' = dur_tau, 'dur_c' = dur_c
+                               'dur0' = dur0, 'dur_u' = dur_u, 'dur_a' = dur_a, 'dur_tau' = dur_tau, 'dur_c' = dur_c,
+                               'hous0' = hous0, 'hous_u' = hous_u, 'hous_a' = hous_a, 'hous_c' = hous_c,
+                               'sav0' = sav0, 'sav_u'= sav_u, 'sav_a' = sav_a, 'sav_c' = sav_c,
+                               'stat0' = stat0, 'stat_u' = stat_u, 'stat_a' = stat_a, 'stat_c' = stat_c,
+                               'nhous' = 2, 'nsav' = 4, 'nstat' = 3,
+                               'cut_hous' = cut_hous, 'cut_sav' = cut_sav, 'cut_stat' = cut_stat
 #                               'stat1_u' = stat1_u, 'stat1_a' = stat1_a, 
 #                               'stat2_u' = stat2_u, 'stat2_a' = stat2_a, 
 #                               'stat3_u' = stat3_u, 'stat3_a' = stat3_a,
@@ -110,7 +145,7 @@ model_test = jags.model('gcd_model_u.jags',
                    n.chains = 4,
                    n.adapt = 100)
 
-samples_u = coda.samples(model_test, c('u'), n.iter = 4000)
+samples_u = coda.samples(model_test, c('u'), n.iter = 8000)
 # save(samples_u, file='mcmc_samples.Rdata')
 mcmcMat_u = as.matrix(samples_u , chains=TRUE )
 # u = mcmcMat[,"u"]
@@ -124,12 +159,17 @@ model_test_CF = jags.model('gcd_model_u.jags',
                                     'amt' = test_CF$amount, 'dur' = test_CF$duration,
                                     'age' = test_CF$age,
                                     'amt0' = amt0, 'amt_u' = amt_u, 'amt_a' = amt_a, 'amt_tau' = amt_tau, 'amt_c' = amt_c,
-                                    'dur0' = dur0, 'dur_u' = dur_u, 'dur_a' = dur_a, 'dur_tau' = dur_tau, 'dur_c' = dur_c
+                                    'dur0' = dur0, 'dur_u' = dur_u, 'dur_a' = dur_a, 'dur_tau' = dur_tau, 'dur_c' = dur_c,
+                                    'hous0' = hous0, 'hous_u' = hous_u, 'hous_a' = hous_a, 'hous_c' = hous_c,
+                                    'sav0' = sav0, 'sav_u'= sav_u, 'sav_a' = sav_a, 'sav_c' = sav_c,
+                                    'stat0' = stat0, 'stat_u' = stat_u, 'stat_a' = stat_a, 'stat_c' = stat_c,
+                                    'nhous' = 2, 'nsav' = 4, 'nstat' = 3,
+                                    'cut_hous' = cut_hous, 'cut_sav' = cut_sav, 'cut_stat' = cut_stat
 #                                    'y0' = y0, 'y_u' = y_u, 'y_a' = y_a, 'y_amt' = y_amt, 'y_dur' = y_dur, 'y_c' = y_c
                         ),
                         n.chains = 4,
                         n.adapt = 100)
-samples_u_CF = coda.samples(model_test_CF, c('u'), n.iter = 4000)
+samples_u_CF = coda.samples(model_test_CF, c('u'), n.iter = 8000)
 mcmcMat_u_CF = as.matrix(samples_u_CF , chains=TRUE )
 # u = mcmcMat[,"u"]
 u_test_CF <- colMeans(mcmcMat_u_CF)

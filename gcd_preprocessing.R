@@ -23,9 +23,6 @@ data$sex[-male_idx] <- '1' # female
 vars <- c("status", "duration", "amount", "savings", "age", "housing", "sex", "credit_risk")
 data <- data[, vars]
 
-
-
-
 # Normalization steps for continuous attributes
 ## Histogram of continuous attributes to show skewness
 hist(data$duration)
@@ -48,8 +45,6 @@ data$duration <- data$duration / sd(data$duration)
 data$amount <- data$amount / sd(data$amount)
 data$age <- data$age / sd(data$age)
 
-
-
 # Convert categorical attributes to ordinal scale
 data$status <- as.vector(data$status)
 data$status[data$status == "A11"] <- 2
@@ -69,12 +64,12 @@ data$housing[data$housing == "A151"] <- 2
 data$housing[data$housing == "A152"] <- 3
 data$housing[data$housing == "A153"] <- 1
 
-save(data, file="gcd_data_ord.Rdata")
+save(data, file="gcd_data.Rdata")
 
 
 
-
-# One hot encoding of all remaining categorical variables
+# Not used anymore
+# One hot encoding of the categorical variables
 levels(data$status) # 4 levels
 data$status1 <- as.numeric(data$status == "A11")
 data$status2 <- as.numeric(data$status == "A12")
@@ -98,4 +93,4 @@ data <- within(data, rm("status","savings","housing"))
 data <- data[, !(colnames(data) %in% c("status","savings","housing"))]
 
 # Save preprocessed data
-save(data, file='gcd_data.Rdata')
+save(data, file='gcd_data_hot.Rdata')
