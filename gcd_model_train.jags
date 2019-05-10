@@ -2,23 +2,23 @@ model {
 
   u_tau ~ dgamma(0.01,0.01)
 
-  y0 ~ dnorm(0, 1/25)
-  y_u ~ dnorm(0, 1/25)
-  y_a ~ dnorm(0, 1/25)
-  y_amt ~ dnorm(0, 1/25)
-  y_dur ~ dnorm(0, 1/25)
-  y_c ~ dnorm(0, 1/25)
+  y0 ~ dnorm(0, 1)
+  y_u ~ dnorm(0, 1)
+  y_a ~ dnorm(0, 1)
+  y_amt ~ dnorm(0, 1)
+  y_dur ~ dnorm(0, 1)
+  y_c ~ dnorm(0, 1)
   
-  amt0 ~ dnorm(0, 1/25)
-  amt_u ~ dnorm(0, 1/25)
-  amt_a ~ dnorm(0, 1/25)
-  amt_c ~ dnorm(0, 1/25)
+  amt0 ~ dnorm(0, 1)
+  amt_u ~ dnorm(0, 1)
+  amt_a ~ dnorm(0, 1)
+  amt_c ~ dnorm(0, 1)
   amt_tau ~ dgamma(0.01,0.01)
   
-  dur0 ~ dnorm(0, 1/25)
-  dur_u ~ dnorm(0, 1/25)
-  dur_a ~ dnorm(0, 1/25)
-  dur_c ~ dnorm(0, 1/25)
+  dur0 ~ dnorm(0, 1)
+  dur_u ~ dnorm(0, 1)
+  dur_a ~ dnorm(0, 1)
+  dur_c ~ dnorm(0, 1)
   dur_tau ~ dgamma(0.01,0.01)
 
   for (i in 1:N) {

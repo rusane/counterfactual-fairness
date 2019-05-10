@@ -34,7 +34,7 @@ model = jags.model('gcd_model_train.jags',
                                'age' = train$age
 #                               'stat1' = train$status1, 'stat2' = train$status2, 'stat3' = train$status3, 'stat4' = train$status4
                                ),
-                   inits = list('amt0' = 3200, 'dur0' = 20, 'amt_tau' = 1/(2800^2), 'dur_tau' = 1/(12^2)),
+#                   inits = list('amt0' = 3200, 'dur0' = 20, 'amt_tau' = 1/(2800^2), 'dur_tau' = 1/(12^2)),
                    n.chains = 4,
                    n.adapt = 100)
 
@@ -48,7 +48,7 @@ samples = coda.samples(model, c('u',
                        n.iter = 4000)
 #save(samples, file='seed42.Rdata')
 
-params <- c("u[13]")
+params <- c("u[402]")
 plot(samples[,params])
 gelman.diag(samples[,params])
 gelman.plot(samples[,params])

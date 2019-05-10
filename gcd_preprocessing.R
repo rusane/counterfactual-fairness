@@ -24,26 +24,53 @@ vars <- c("status", "duration", "amount", "savings", "age", "housing", "sex", "c
 data <- data[, vars]
 
 
-# Numerical
+
+
+# Normalization steps for continuous attributes
+## Histogram of continuous attributes to show skewness
+hist(data$duration)
+hist(data$amount)
+hist(data$age)
+## Log-transformation
+data$duration <- log(data$duration)
+data$amount <- log(data$amount)
+data$age <- log(data$age)
+## Histogram of continuous attributes to show 'normal' distribution after log-transformation
+hist(data$duration)
+hist(data$amount)
+hist(data$age)
+## Zero mean
+data$duration <- data$duration - mean(data$duration)
+data$amount <- data$amount - mean(data$amount)
+data$age <- data$age - mean(data$age)
+## Unit variance (SD = 1)
+data$duration <- data$duration / sd(data$duration)
+data$amount <- data$amount / sd(data$amount)
+data$age <- data$age / sd(data$age)
+
+
+
+# Convert categorical attributes to ordinal scale
 data$status <- as.vector(data$status)
-data$status[data$status == "A11"] <- 1
-data$status[data$status == "A12"] <- 2
-data$status[data$status == "A13"] <- 3
-data$status[data$status == "A14"] <- 4
+data$status[data$status == "A11"] <- 2
+data$status[data$status == "A12"] <- 3
+data$status[data$status == "A13"] <- 4
+data$status[data$status == "A14"] <- 1
 
 data$savings <- as.vector(data$savings)
-data$savings[data$savings == "A61"] <- 1
-data$savings[data$savings == "A62"] <- 2
-data$savings[data$savings == "A63"] <- 3
-data$savings[data$savings == "A64"] <- 4
-data$savings[data$savings == "A65"] <- 5
+data$savings[data$savings == "A61"] <- 2
+data$savings[data$savings == "A62"] <- 3
+data$savings[data$savings == "A63"] <- 4
+data$savings[data$savings == "A64"] <- 5
+data$savings[data$savings == "A65"] <- 1
 
 data$housing <- as.vector(data$housing)
-data$housing[data$housing == "A151"] <- 1
-data$housing[data$housing == "A152"] <- 2
-data$housing[data$housing == "A153"] <- 3
+data$housing[data$housing == "A151"] <- 2
+data$housing[data$housing == "A152"] <- 3
+data$housing[data$housing == "A153"] <- 1
 
-save(data, file="gcd_data_num.Rdata")
+save(data, file="gcd_data_ord.Rdata")
+
 
 
 
@@ -72,7 +99,3 @@ data <- data[, !(colnames(data) %in% c("status","savings","housing"))]
 
 # Save preprocessed data
 save(data, file='gcd_data.Rdata')
-
-
-
-
