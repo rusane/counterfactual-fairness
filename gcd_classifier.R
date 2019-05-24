@@ -6,20 +6,13 @@ library(sm)
 load("gcd_data.Rdata")
 N <- dim(data)[1]
 
-set.seed(42)
+set.seed(10)
 trainIndex <- createDataPartition(data$credit_risk, p = .8, list = FALSE, times = 1)
 train <- data[trainIndex,]
 test <- data[-trainIndex,]
 N_train <- dim(train)[1]
 N_test <- dim(test)[1]
-
-# TO-REMOVE: not correct way of showing counterfactual fairness, need to sample data from JAGS model
-# Create counterfactual test set
-test_CF <- test
-male_test_idx <- which(test_CF$sex %in% '0')
-test_CF$sex[male_test_idx] <- '1'
-test_CF$sex[-male_test_idx] <- '0'
-
+male_test_idx <- which(test$sex %in% '0')
 
 ### Training the model
 load.module("glm")
@@ -36,9 +29,9 @@ model = jags.model('gcd_model_train.jags',
                                'nhous' = 2, 'nsav' = 4, 'nstat' = 3,
                                'cut_hous' = cut_hous, 'cut_sav' = cut_sav, 'cut_stat' = cut_stat
                                ),
-                   n.chains = 4,
-                   n.adapt = 100)
-
+                   n.chains = 1,
+                   n.adapt = 1000)
+update(model, 10000)
 samples = coda.samples(model, c('u', 
                                 'amt0', 'amt_u', 'amt_a', 'amt_tau', 'amt_c',
                                 'dur0', 'dur_u', 'dur_a', 'dur_tau', 'dur_c',
@@ -46,15 +39,16 @@ samples = coda.samples(model, c('u',
                                 'sav0', 'sav_u', 'sav_a', 'sav_c',
                                 'stat0', 'stat_u', 'stat_a', 'stat_c'
                                 ), 
-                       n.iter = 8000)
-#save(samples, file='seed42_new.Rdata')
+                       n.iter = 20000,
+                       thin = 2)
+#save(samples, file='seed0_20000_updata_niter.Rdata')
 
-params <- c("u[500]")
+params <- c("u[1]", "u[2]", "dur_u")
 plot(samples[,params])
-gelman.diag(samples[,params])
-gelman.plot(samples[,params])
+#gelman.diag(samples[,params])
+#gelman.plot(samples[,params])
 
-mcmcMat = as.matrix(samples , chains=TRUE )
+mcmcMat = as.matrix(samples, chains=TRUE )
 means <- colMeans(mcmcMat)
 
 amt0 <- means["amt0"]
@@ -101,37 +95,19 @@ model_test = jags.model('gcd_model_u.jags',
                                'nhous' = 2, 'nsav' = 4, 'nstat' = 3,
                                'cut_hous' = cut_hous, 'cut_sav' = cut_sav, 'cut_stat' = cut_stat
                    ),
-                   n.chains = 4,
-                   n.adapt = 100)
+                   n.chains = 1,
+                   n.adapt = 1000)
+update(model_test, 10000)
+samples_u = coda.samples(model_test, c('u'), n.iter = 20000)
 
-samples_u = coda.samples(model_test, c('u'), n.iter = 8000)
+#params_u <- c("u[10]")
+#plot(samples_u[,params_u])
+#gelman.diag(samples_u[,params_u])
+#gelman.plot(samples_u[,params_u])
+
 mcmcMat_u = as.matrix(samples_u , chains=TRUE )
-# u = mcmcMat[,"u"]
 u_test <- colMeans(mcmcMat_u)
 u_test <- u_test[2:length(u_test)]
-
-
-
-### CF model
-model_test_CF = jags.model('gcd_model_u.jags',
-                        data = list('N' = N_test, 'a' = test_CF$sex, 
-                                    'amt' = test_CF$amount, 'dur' = test_CF$duration,
-                                    'age' = test_CF$age,
-                                    'amt0' = amt0, 'amt_u' = amt_u, 'amt_a' = amt_a, 'amt_tau' = amt_tau, 'amt_c' = amt_c,
-                                    'dur0' = dur0, 'dur_u' = dur_u, 'dur_a' = dur_a, 'dur_tau' = dur_tau, 'dur_c' = dur_c,
-                                    'hous0' = hous0, 'hous_u' = hous_u, 'hous_a' = hous_a, 'hous_c' = hous_c,
-                                    'sav0' = sav0, 'sav_u'= sav_u, 'sav_a' = sav_a, 'sav_c' = sav_c,
-                                    'stat0' = stat0, 'stat_u' = stat_u, 'stat_a' = stat_a, 'stat_c' = stat_c,
-                                    'nhous' = 2, 'nsav' = 4, 'nstat' = 3,
-                                    'cut_hous' = cut_hous, 'cut_sav' = cut_sav, 'cut_stat' = cut_stat
-                        ),
-                        n.chains = 4,
-                        n.adapt = 100)
-samples_u_CF = coda.samples(model_test_CF, c('u'), n.iter = 8000)
-mcmcMat_u_CF = as.matrix(samples_u_CF , chains=TRUE )
-u_test_CF <- colMeans(mcmcMat_u_CF)
-u_test_CF <- u_test_CF[2:length(u_test_CF)]
-
 
 
 # Classifier
@@ -151,14 +127,6 @@ predictions_raw_te <- predict(classifier, newdata=X_te, type='response')
 predictions_te <- ifelse(predictions_raw_te > 0.5, 1, 0)
 error_te <- mean(predictions_te != test$credit_risk)
 print(paste('Accuracy:', 1-error_te))
-
-# CF Test
-X_CF <- data.frame(u=u_test_CF, age=test_CF$age, credit_risk=test_CF$credit_risk)
-predictions_raw_CF <- predict(classifier, newdata=X_CF, type='response')
-predictions_CF <- ifelse(predictions_raw_CF > 0.5, 1, 0)
-error_CF <- mean(predictions_CF != test_CF$credit_risk)
-print(paste('Accuracy:', 1-error_CF))
-
 
 
 # Plot
@@ -208,3 +176,4 @@ male_FP <- sum(male_pred[male_te == 0] != male_te[male_te == 0])
 male_FPR <- male_FP / length(male_te[male_te==0]); male_FPR
 female_FP <- sum(female_pred[female_te == 0] != female_te[female_te == 0])
 female_FPR <- female_FP / length(female_te[female_te==0]); female_FPR
+

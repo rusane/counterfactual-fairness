@@ -15,9 +15,9 @@ N_train <- dim(train)[1]
 N_test <- dim(test)[1]
 male_test_idx <- which(test$sex %in% '0')
 
-unaware <- glm(credit_risk ~ . - sex - u, family=binomial("logit"), data=train)
+fair <- glm(credit_risk ~ u + age, family=binomial("logit"), data=train)
 
-pred_raw <- predict(unaware, newdata=test, type='response')
+pred_raw <- predict(fair, newdata=test, type='response')
 pred <- ifelse(pred_raw > 0.5, 1, 0)
 error <- mean(pred != test$credit_risk)
 print(paste('Accuracy:', 1-error))
@@ -37,14 +37,12 @@ N_train_CF <- dim(train_CF)[1]
 N_test_CF <- dim(test_CF)[1]
 male_test_idx_CF <- which(test_CF$sex %in% '0')
 
-unaware <- glm(credit_risk ~ . - sex - u, family=binomial("logit"), data=train_CF)
+fair_CF <- glm(credit_risk ~ u + age, family=binomial("logit"), data=train_CF)
 
-pred_raw_CF <- predict(unaware, newdata=test_CF, type='response')
+pred_raw_CF <- predict(fair_CF, newdata=test_CF, type='response')
 pred_CF <- ifelse(pred_raw_CF > 0.5, 1, 0)
 error_CF <- mean(pred_CF != test$credit_risk)
 print(paste('Accuracy:', 1-error_CF))
-
-
 
 
 # Statistical fairness
@@ -67,7 +65,6 @@ male_FP <- sum(male_pred[male_te == 0] != male_te[male_te == 0])
 male_FPR <- male_FP / length(male_te[male_te==0]); male_FPR
 female_FP <- sum(female_pred[female_te == 0] != female_te[female_te == 0])
 female_FPR <- female_FP / length(female_te[female_te==0]); female_FPR
-
 
 
 # Plot
@@ -95,4 +92,3 @@ legend("topright", legend=levels(male_compare$type), fill=cols)
 sm.density.compare(female_compare$pred, female_compare$type, xlab="Credit risk probability", model="equal")
 title("Density plot comparison of sex (F)")
 legend("topright", legend=levels(female_compare$type), fill=cols)
-

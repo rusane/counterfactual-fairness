@@ -1,7 +1,5 @@
 model {
 
-  u_tau ~ dgamma(0.01,0.01)
-
   y0 ~ dnorm(0, 1)
   y_u ~ dnorm(0, 1)
   y_a ~ dnorm(0, 1)
@@ -40,7 +38,7 @@ model {
   stat_c ~ dnorm(0, 1)
 
   for (i in 1:N) {
-    u[i] ~ dnorm(0, u_tau)
+    u[i] ~ dnorm(0, 1)
     
     amt[i] ~ dnorm(amt0 + amt_u * u[i] + amt_a * a[i] + amt_c * age[i], amt_tau)
     dur[i] ~ dnorm(dur0 + dur_u * u[i] + dur_a * a[i] + dur_c * age[i], dur_tau)

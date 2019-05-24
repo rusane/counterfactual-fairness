@@ -64,6 +64,11 @@ data$housing[data$housing == "A151"] <- 2
 data$housing[data$housing == "A152"] <- 3
 data$housing[data$housing == "A153"] <- 1
 
+data$sex <- as.numeric(data$sex)
+data$status <- as.numeric(data$status)
+data$savings <- as.numeric(data$savings)
+data$housing <- as.numeric(data$housing)
+
 save(data, file="gcd_data.Rdata")
 
 
