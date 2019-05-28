@@ -8,9 +8,12 @@ N <- dim(data)[1]
 
 load.module("glm")
 
-cut_hous = c(-0.5, 0.5)
-cut_sav = c(-1.5, -0.5, 0.5, 1.5)
-cut_stat = c(-1, 0, 1)
+#cut_hous = c(-0.1, 0.1)
+#cut_sav = c(-0.3, -0.1, 0.1, 0.3)
+#cut_stat = c(-0.2, 0, 0.2)
+cut_hous = c(-2.260, -1.051)
+cut_sav = c(-1.472, 1.335, 2.115, 3.021)
+cut_stat = c(-0.420, 0.716, 2.720)
 
 model = jags.model('gcd_model_train.jags',
                    data = list('N' = N, 'y' = data$credit_risk, 'a' = data$sex, 
@@ -35,7 +38,7 @@ samples = coda.samples(model, c('u',
                        thin = 2)
 
 #save(samples, file="sampling_samples.Rdata")
-params <- c("y_sav")
+params <- c("dur_u", "amt_u", "hous_u", "u[2]")
 plot(samples[,params])
 #gelman.diag(samples[,params])
 #gelman.plot(samples[,params])
@@ -99,26 +102,25 @@ model_sampling = jags.model('gcd_model_u.jags',
                         n.chains = 1,
                         n.adapt = 1000)
 update(model_sampling, 10000)
-data_attr = c('y', 'amt', 'dur', 'hous', 'sav', 'stat', 'age')
-sample_data = coda.samples(model_sampling, data_attr, n.iter = 1)
+data_attr = c('y', 'amt', 'dur', 'hous', 'sav', 'stat')
+sample_data = coda.samples(model_sampling, data_attr, n.iter = 20000)
 
-#params <- c("y[100]")
-#plot(sample_data[,params])
+params <- c("amt[1]")
+plot(sample_data[,params])
 #gelman.diag(sample_data[,params])
 #gelman.plot(sample_data[,params])
 
 sample_mcmcMat = as.matrix(sample_data, chains=FALSE )
 sample_means <- colMeans(sample_mcmcMat)
 
-age <- sample_means[1:1000]
-amount <- sample_means[1001:2000]
-duration <- sample_means[2001:3000]
-housing <- sample_means[3001:4000]
-savings <- sample_means[4001:5000]
-status <- sample_means[5001:6000]
-credit_risk <- sample_means[6001:7000]
+amount <- sample_means[1:1000]
+duration <- sample_means[1001:2000]
+housing <- sample_means[2001:3000]
+savings <- sample_means[3001:4000]
+status <- sample_means[4001:5000]
+credit_risk <- sample_means[5001:6000]
 
-data_og <- data.frame("sex" = data$sex, age, amount, duration, housing, savings, status, credit_risk, u)
+data_og <- data.frame("sex" = data$sex, "age" = data$age, amount, duration, housing, savings, status, credit_risk, u)
 rownames(data_og) = NULL
 save(data_og, file="data_samples_og.Rdata")
 
@@ -144,21 +146,20 @@ model_sampling_cf = jags.model('gcd_model_u.jags',
                             n.chains = 1,
                             n.adapt = 1000)
 update(model_sampling_cf, 10000)
-data_attr_cf = c('y', 'amt', 'dur', 'hous', 'sav', 'stat', 'age')
-sample_data_cf = coda.samples(model_sampling_cf, data_attr_cf, n.iter = 1)
+data_attr_cf = c('y', 'amt', 'dur', 'hous', 'sav', 'stat')
+sample_data_cf = coda.samples(model_sampling_cf, data_attr_cf, n.iter = 10000)
 
 sample_mcmcMat_cf = as.matrix(sample_data_cf, chains=FALSE )
 sample_means_cf <- colMeans(sample_mcmcMat_cf)
 
-age <- sample_means_cf[1:1000]
-amount <- sample_means_cf[1001:2000]
-duration <- sample_means_cf[2001:3000]
-housing <- sample_means_cf[3001:4000]
-savings <- sample_means_cf[4001:5000]
-status <- sample_means_cf[5001:6000]
-credit_risk <- sample_means_cf[6001:7000]
+amount <- sample_means_cf[1:1000]
+duration <- sample_means_cf[1001:2000]
+housing <- sample_means_cf[2001:3000]
+savings <- sample_means_cf[3001:4000]
+status <- sample_means_cf[4001:5000]
+credit_risk <- sample_means_cf[5001:6000]
 
-data_cf <- data.frame("sex" = sex_cf, age, amount, duration, housing, savings, status, credit_risk, u)
+data_cf <- data.frame("sex" = sex_cf, "age" = data$age, amount, duration, housing, savings, status, credit_risk, u)
 rownames(data_cf) = NULL
 save(data_cf, file="data_samples_cf.Rdata")
 

@@ -1,11 +1,44 @@
 library(caret)
 library(sm)
 
+# Baseline evaluation
+load("gcd_data.Rdata")
+N <- dim(data)[1]
+data$credit_risk <- as.factor(data$credit_risk)
+
+set.seed(0)
+trainIndex <- createDataPartition(data$credit_risk, p = .8, 
+                                  list = FALSE, 
+                                  times = 1)
+train <- data[trainIndex,]
+test <- data[-trainIndex,]
+N_train <- dim(train)[1]
+N_test <- dim(test)[1]
+cv <- trainControl(method = "cv", number = 10)
+
+#full <- glm(credit_risk ~ ., family=binomial("logit"), data=train)
+full <- train(credit_risk ~ ., method="glm", data=train, family="binomial", trControl=cv)
+
+pred <- predict(full, newdata=test)
+confusionMatrix(data=pred, test$credit_risk, positive='1')
+
+#pred <- ifelse(pred_raw > 0.5, 1, 0)
+error <- mean(pred != test$credit_risk)
+print(paste('Accuracy:', 1-error))
+
+TN <- sum(pred[test$credit_risk == 0] == test$credit_risk[test$credit_risk == 0])
+TP <- sum(pred[test$credit_risk == 1] == test$credit_risk[test$credit_risk == 1])
+FN <- sum(pred[test$credit_risk == 1] != test$credit_risk[test$credit_risk == 1])
+FP <- sum(pred[test$credit_risk == 0] != test$credit_risk[test$credit_risk == 0])
+
+
+
+
 # Original sampled data
-load("data_samples_og.Rdata")
+load("data_y_og.Rdata")
 N <- dim(data_og)[1]
 
-set.seed(10)
+set.seed(0)
 trainIndex <- createDataPartition(data_og$credit_risk, p = .8, 
                                   list = FALSE, 
                                   times = 1)
@@ -24,7 +57,7 @@ print(paste('Accuracy:', 1-error))
 
 
 # Counterfactual sampled data
-load("data_samples_cf.Rdata")
+load("data_y_cf.Rdata")
 N_CF <- dim(data_cf)[1]
 
 set.seed(0)

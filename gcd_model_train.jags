@@ -14,13 +14,13 @@ model {
   amt_u ~ dnorm(0, 1)
   amt_a ~ dnorm(0, 1)
   amt_c ~ dnorm(0, 1)
-  amt_tau ~ dgamma(0.01,0.01)
+  amt_tau ~ dgamma(1,1)
   
   dur0 ~ dnorm(0, 1)
   dur_u ~ dnorm(0, 1)
   dur_a ~ dnorm(0, 1)
   dur_c ~ dnorm(0, 1)
-  dur_tau ~ dgamma(0.01,0.01)
+  dur_tau ~ dgamma(1,1)
   
   hous0 ~ dnorm(0, 1)
   hous_u ~ dnorm(0, 1)

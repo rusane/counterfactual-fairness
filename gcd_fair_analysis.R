@@ -2,8 +2,9 @@ library(caret)
 library(sm)
 
 # Original sampled data
-load("data_samples_og.Rdata")
+load("data_y_og.Rdata")
 N <- dim(data_og)[1]
+data_og$credit_risk <- as.factor(data_og$credit_risk)
 
 set.seed(0)
 trainIndex <- createDataPartition(data_og$credit_risk, p = .8, 
@@ -14,18 +15,34 @@ test <- data_og[-trainIndex,]
 N_train <- dim(train)[1]
 N_test <- dim(test)[1]
 male_test_idx <- which(test$sex %in% '0')
+cv <- trainControl(method = "cv", number = 10)
 
-fair <- glm(credit_risk ~ u + age, family=binomial("logit"), data=train)
+fair <- train(credit_risk ~ u + age, method="glm", data=train, family="binomial", trControl=cv)
 
-pred_raw <- predict(fair, newdata=test, type='response')
-pred <- ifelse(pred_raw > 0.5, 1, 0)
+pred <- predict(fair, newdata=test)
+confusionMatrix(data=pred, test$credit_risk, positive='1')
+
+pred_raw <- predict(fair, newdata=test, type="prob")[,'1']
+
+#pred_raw <- predict(fair, newdata=test, type='response')
+#pred <- ifelse(pred_raw > 0.5, 1, 0)
+#error <- mean(pred != test$credit_risk)
+#print(paste('Accuracy:', 1-error))
+
 error <- mean(pred != test$credit_risk)
 print(paste('Accuracy:', 1-error))
 
+TN <- sum(pred[test$credit_risk == 0] == test$credit_risk[test$credit_risk == 0])
+TP <- sum(pred[test$credit_risk == 1] == test$credit_risk[test$credit_risk == 1])
+FN <- sum(pred[test$credit_risk == 1] != test$credit_risk[test$credit_risk == 1])
+FP <- sum(pred[test$credit_risk == 0] != test$credit_risk[test$credit_risk == 0])
+
+
 
 # Counterfactual sampled data
-load("data_samples_cf.Rdata")
+load("data_y_cf.Rdata")
 N_CF <- dim(data_cf)[1]
+data_cf$credit_risk <- as.factor(data_cf$credit_risk)
 
 set.seed(0)
 trainIndex_CF <- createDataPartition(data_cf$credit_risk, p = .8, 
@@ -36,13 +53,24 @@ test_CF <- data_cf[-trainIndex_CF,]
 N_train_CF <- dim(train_CF)[1]
 N_test_CF <- dim(test_CF)[1]
 male_test_idx_CF <- which(test_CF$sex %in% '0')
+cv <- trainControl(method = "cv", number = 10)
 
-fair_CF <- glm(credit_risk ~ u + age, family=binomial("logit"), data=train_CF)
+fair_CF <- train(credit_risk ~ u + age, method="glm", data=train_CF, family="binomial", trControl=cv)
 
-pred_raw_CF <- predict(fair_CF, newdata=test_CF, type='response')
-pred_CF <- ifelse(pred_raw_CF > 0.5, 1, 0)
-error_CF <- mean(pred_CF != test$credit_risk)
+pred_CF <- predict(fair_CF, newdata=test_CF)
+confusionMatrix(data=pred_CF, test_CF$credit_risk, positive='1')
+
+pred_raw_CF <- predict(fair_CF, newdata=test_CF, type="prob")[,'1']
+
+#pred_raw_CF <- predict(fair_CF, newdata=test_CF, type='response')
+#pred_CF <- ifelse(pred_raw_CF > 0.5, 1, 0)
+#error_CF <- mean(pred_CF != test$credit_risk)
+#print(paste('Accuracy:', 1-error_CF))
+
+error_CF <- mean(pred_CF != test_CF$credit_risk)
 print(paste('Accuracy:', 1-error_CF))
+
+
 
 
 # Statistical fairness
