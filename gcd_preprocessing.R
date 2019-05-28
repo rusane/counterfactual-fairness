@@ -45,31 +45,45 @@ data$duration <- data$duration / sd(data$duration)
 data$amount <- data$amount / sd(data$amount)
 data$age <- data$age / sd(data$age)
 
-# Convert categorical attributes to ordinal scale
-data$status <- as.vector(data$status)
-data$status[data$status == "A11"] <- 2
-data$status[data$status == "A12"] <- 3
-data$status[data$status == "A13"] <- 4
-data$status[data$status == "A14"] <- 1
+# Categorical to binary
+data$housing <- as.vector(data$housing)
+data$housing[data$housing == "A153"] <- 0 # for free
+data$housing[data$housing == "A151" | data$housing == "A152" ] <- 1 # rent or own 
 
 data$savings <- as.vector(data$savings)
-data$savings[data$savings == "A61"] <- 2
-data$savings[data$savings == "A62"] <- 3
-data$savings[data$savings == "A63"] <- 4
-data$savings[data$savings == "A64"] <- 5
-data$savings[data$savings == "A65"] <- 1
+data$savings[data$savings == "A61" | data$savings == "A62" | data$savings == "A65"] <- 0 # < 500
+data$savings[data$savings == "A63" | data$savings == "A64"] <- 1 # > 500
 
-data$housing <- as.vector(data$housing)
-data$housing[data$housing == "A151"] <- 2
-data$housing[data$housing == "A152"] <- 3
-data$housing[data$housing == "A153"] <- 1
+data$status <- as.vector(data$status)
+data$status[data$status == "A11" | data$status == "A14"] <- 0 # no or < 0 DM
+data$status[data$status == "A12" | data$status == "A13"] <- 1 # >= 0 DM
+
+
+# Convert categorical attributes to ordinal scale
+# data$status <- as.vector(data$status)
+# data$status[data$status == "A11"] <- 2
+# data$status[data$status == "A12"] <- 3
+# data$status[data$status == "A13"] <- 4
+# data$status[data$status == "A14"] <- 1
+# 
+# data$savings <- as.vector(data$savings)
+# data$savings[data$savings == "A61"] <- 2
+# data$savings[data$savings == "A62"] <- 3
+# data$savings[data$savings == "A63"] <- 4
+# data$savings[data$savings == "A64"] <- 5
+# data$savings[data$savings == "A65"] <- 1
+# 
+# data$housing <- as.vector(data$housing)
+# data$housing[data$housing == "A151"] <- 2
+# data$housing[data$housing == "A152"] <- 3
+# data$housing[data$housing == "A153"] <- 1
 
 data$sex <- as.numeric(data$sex)
 data$status <- as.numeric(data$status)
 data$savings <- as.numeric(data$savings)
 data$housing <- as.numeric(data$housing)
 
-save(data, file="gcd_data.Rdata")
+save(data, file="gcd_data_bin.Rdata")
 
 
 

@@ -3,17 +3,17 @@ require(coda)
 library(caret)
 library(sm)
 
-load("gcd_data.Rdata")
+load("gcd_data_bin.Rdata")
 N <- dim(data)[1]
 
-data$sex <- as.factor(data$sex)
-data$status <- as.factor(data$status)
-data$savings <- as.factor(data$savings)
-data$housing <- as.factor(data$housing)
+#data$sex <- as.factor(data$sex)
+#data$status <- as.factor(data$status)
+#data$savings <- as.factor(data$savings)
+#data$housing <- as.factor(data$housing)
 
-polr(formula = housing ~ age + sex, data = data) # -2.260, -1.051
-polr(formula = savings ~ age + sex, data = data) # -1.472, 1.335, 2.115, 3.021
-polr(formula = status ~ age + sex, data = data) # -0.420, 0.716, 2.720
+#polr(formula = housing ~ age + sex, data = data) # -2.260, -1.051
+#polr(formula = savings ~ age + sex, data = data) # -1.472, 1.335, 2.115, 3.021
+#polr(formula = status ~ age + sex, data = data) # -0.420, 0.716, 2.720
 
 
 set.seed(0)
@@ -25,22 +25,22 @@ N_test <- dim(test)[1]
 male_test_idx <- which(test$sex %in% '0')
 
 ### Training the model
-load.module("glm")
+#load.module("glm")
 
 #cut_hous = c(-0.1, 0.1)
 #cut_sav = c(-0.3, -0.1, 0.1, 0.3)
 #cut_stat = c(-0.2, 0, 0.2)
-cut_hous = c(-2.260, -1.051)
-cut_sav = c(-1.472, 1.335, 2.115, 3.021)
-cut_stat = c(-0.420, 0.716, 2.720)
+#cut_hous = c(-2.260, -1.051)
+#cut_sav = c(-1.472, 1.335, 2.115, 3.021)
+#cut_stat = c(-0.420, 0.716, 2.720)
 
 model = jags.model('gcd_model_train.jags',
                    data = list('N' = N_train, 'y' = train$credit_risk, 'a' = train$sex, 
                                'amt' = train$amount, 'dur' = train$duration,
                                'age' = train$age,
-                               'hous' = train$housing, 'sav' = train$savings, 'stat' = train$status,
-                               'nhous' = 2, 'nsav' = 4, 'nstat' = 3,
-                               'cut_hous' = cut_hous, 'cut_sav' = cut_sav, 'cut_stat' = cut_stat
+                               'hous' = train$housing, 'sav' = train$savings, 'stat' = train$status
+                               #'nhous' = 2, 'nsav' = 4, 'nstat' = 3,
+                               #'cut_hous' = cut_hous, 'cut_sav' = cut_sav, 'cut_stat' = cut_stat
                                ),
                    n.chains = 1,
                    n.adapt = 1000)
@@ -52,11 +52,11 @@ samples = coda.samples(model, c('u',
                                 'sav0', 'sav_u', 'sav_a', 'sav_c',
                                 'stat0', 'stat_u', 'stat_a', 'stat_c'
                                 ), 
-                       n.iter = 20000,
+                       n.iter = 10000,
                        thin = 2)
-#save(samples, file='seed0_final.Rdata')
+#save(samples, file='seed0_bin.Rdata')
 
-params <- c("u[1]", "hous_u", "dur_u")
+params <- c("u[1]", "dur_u", "amt_u")
 plot(samples[,params])
 #gelman.diag(samples[,params])
 #gelman.plot(samples[,params])
@@ -104,14 +104,14 @@ model_test = jags.model('gcd_model_u.jags',
                                'dur0' = dur0, 'dur_u' = dur_u, 'dur_a' = dur_a, 'dur_tau' = dur_tau, 'dur_c' = dur_c,
                                'hous0' = hous0, 'hous_u' = hous_u, 'hous_a' = hous_a, 'hous_c' = hous_c,
                                'sav0' = sav0, 'sav_u'= sav_u, 'sav_a' = sav_a, 'sav_c' = sav_c,
-                               'stat0' = stat0, 'stat_u' = stat_u, 'stat_a' = stat_a, 'stat_c' = stat_c,
-                               'nhous' = 2, 'nsav' = 4, 'nstat' = 3,
-                               'cut_hous' = cut_hous, 'cut_sav' = cut_sav, 'cut_stat' = cut_stat
+                               'stat0' = stat0, 'stat_u' = stat_u, 'stat_a' = stat_a, 'stat_c' = stat_c
+                               # 'nhous' = 2, 'nsav' = 4, 'nstat' = 3,
+                               # 'cut_hous' = cut_hous, 'cut_sav' = cut_sav, 'cut_stat' = cut_stat
                    ),
                    n.chains = 1,
                    n.adapt = 1000)
 update(model_test, 10000)
-samples_u = coda.samples(model_test, c('u'), n.iter = 20000)
+samples_u = coda.samples(model_test, c('u'), n.iter = 10000)
 
 #params_u <- c("u[10]")
 #plot(samples_u[,params_u])
