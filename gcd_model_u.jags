@@ -11,7 +11,7 @@ model {
     stat[i] ~ dbern( 1 / (1 + exp(-(stat0 + stat_u * u[i] + stat_a * a[i] + stat_c * age[i]))) )
     
     #logit(theta[i]) <- y0 + y_u * u[i] + y_a * a[i] + 
-      #y_amt * amt[i] + y_dur * dur[i] + y_c * age[i] 
+      #y_amt * amt[i] + y_dur * dur[i] + y_c * age[i] +
       #y_hous * hous[i] + y_sav * sav[i] + y_stat * stat[i]
     
     #y[i] ~ dbern(theta[i])

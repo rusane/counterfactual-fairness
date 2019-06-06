@@ -35,7 +35,7 @@ confusionMatrix(data=pred, test$credit_risk, positive='1')
 
 
 # Original sampled data
-load("data_y_og.Rdata")
+load("data_samples_og.Rdata")
 N <- dim(data_og)[1]
 data_og$credit_risk <- as.factor(data_og$credit_risk)
 
@@ -65,7 +65,7 @@ pred_raw <- predict(unaware, newdata=test, type="prob")[,'1']
 
 
 # Counterfactual sampled data
-load("data_y_cf.Rdata")
+load("data_samples_cf.Rdata")
 N_CF <- dim(data_cf)[1]
 data_cf$credit_risk <- as.factor(data_cf$credit_risk)
 
@@ -144,4 +144,12 @@ legend("topright", legend=levels(male_compare$type), fill=cols)
 sm.density.compare(female_compare$pred, female_compare$type, xlab="Credit risk probability", model="equal")
 title("Density plot comparison of sex (F)")
 legend("topright", legend=levels(female_compare$type), fill=cols)
+
+# Joined
+original <- data.frame(pred=pred_raw, type=as.factor(rep("original", N_test)))
+counterfactual <- data.frame(pred=pred_raw_CF, type=as.factor(rep("counterfactual", N_test)))
+compare <- rbind(original, counterfactual)
+sm.density.compare(compare$pred, compare$type, xlab="Credit risk probability", model="equal")
+title("Density plot comparison of sex")
+legend("topright", legend=levels(compare$type), fill=cols)
 

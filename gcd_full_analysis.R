@@ -35,7 +35,7 @@ FP <- sum(pred[test$credit_risk == 0] != test$credit_risk[test$credit_risk == 0]
 
 
 # Original sampled data
-load("data_y_og.Rdata")
+load("data_samples_og.Rdata")
 N <- dim(data_og)[1]
 
 set.seed(0)
@@ -57,7 +57,7 @@ print(paste('Accuracy:', 1-error))
 
 
 # Counterfactual sampled data
-load("data_y_cf.Rdata")
+load("data_samples_cf.Rdata")
 N_CF <- dim(data_cf)[1]
 
 set.seed(0)
@@ -131,6 +131,13 @@ legend("topright", legend=levels(m_compare_unfair$type), fill=cols)
 sm.density.compare(f_compare_unfair$pred, f_compare_unfair$type, xlab="Credit risk probability", model="equal")
 title("Density plot comparison of sex (F)")
 legend("topright", legend=levels(f_compare_unfair$type), fill=cols)
+
+original <- data.frame(pred=pred_raw, type=as.factor(rep("original", N_test)))
+counterfactual <- data.frame(pred=pred_raw_CF, type=as.factor(rep("counterfactual", N_test)))
+compare <- rbind(original, counterfactual)
+sm.density.compare(compare$pred, compare$type, xlab="Credit risk probability", model="equal")
+title("Density plot comparison of sex")
+legend("topright", legend=levels(compare$type), fill=cols)
 
 
 #sm.density.compare(compare_distr$pred, compare_distr$type, xlab="Credit risk probability", model="equal")

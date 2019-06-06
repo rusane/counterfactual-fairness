@@ -61,7 +61,7 @@ plot(samples[,params])
 #gelman.diag(samples[,params])
 #gelman.plot(samples[,params])
 
-mcmcMat = as.matrix(samples, chains=TRUE )
+mcmcMat = as.matrix(samples, chains=FALSE )
 means <- colMeans(mcmcMat)
 
 amt0 <- means["amt0"]
@@ -91,7 +91,7 @@ stat_u <- means["stat_u"]
 stat_a <- means["stat_a"]
 stat_c <- means["stat_c"]
 
-u_train <- means[24:length(means)]
+u_train <- means[23:length(means)]
 
 
 
@@ -118,9 +118,8 @@ samples_u = coda.samples(model_test, c('u'), n.iter = 10000)
 #gelman.diag(samples_u[,params_u])
 #gelman.plot(samples_u[,params_u])
 
-mcmcMat_u = as.matrix(samples_u , chains=TRUE )
+mcmcMat_u = as.matrix(samples_u , chains=FALSE )
 u_test <- colMeans(mcmcMat_u)
-u_test <- u_test[2:length(u_test)]
 
 
 # Classifier
@@ -135,6 +134,8 @@ classifier <- train(credit_risk ~ u + age, method="glm", data=X, family="binomia
 
 pred <- predict(classifier, newdata=X_te)
 confusionMatrix(data=pred, X_te$credit_risk, positive='1')
+
+pred_raw <- predict(classifier, newdata=X_te, type="prob")[,'1']
 
 # Train accuracy
 #predictions_raw <- predict(classifier, type='response')
@@ -197,3 +198,33 @@ male_FPR <- male_FP / length(male_te[male_te==0]); male_FPR
 female_FP <- sum(female_pred[female_te == 0] != female_te[female_te == 0])
 female_FPR <- female_FP / length(female_te[female_te==0]); female_FPR
 
+# Calibration
+calibration_m <- mean(pred_raw[male_test_idx])
+calibration_f <- mean(pred_raw[-male_test_idx])
+
+
+#N_m <- length(male_pred)
+#N_f <- length(female_pred)
+good_m <- length(male_pred[male_pred==0])
+good_f <- length(female_pred[female_pred==0])
+bad_m <- length(male_pred[male_pred==1])
+bad_f <- length(female_pred[female_pred==1])
+
+DP_mat <- rbind(c(good_m, bad_m), c(good_f, bad_f))
+fisher.test(DP_mat, alternative="two.sided") # p = 0.1485
+
+# TP + FN = Positives
+male_FN <- sum(male_pred[male_te == 1] != male_te[male_te == 1])
+female_FN = sum(female_pred[female_te == 1] != female_te[female_te == 1])
+
+TPR_mat <- rbind(c(male_TP, male_FN), c(female_TP, female_FN))
+fisher.test(TPR_mat, alternative="two.sided")
+
+# TN + FP = Negatives
+male_TN <- sum(male_pred[male_te == 0] == male_te[male_te == 0])
+female_TN = sum(female_pred[female_te == 0] == female_te[female_te == 0])
+
+FPR_mat <- rbind(c(male_TN, male_FP), c(female_TN, female_FP))
+fisher.test(FPR_mat, alternative="two.sided")
+
+t.test(pred_raw[male_test_idx], pred_raw[-male_test_idx]) # 0.007466
