@@ -6,15 +6,9 @@ library(sm)
 load("gcd_data_bin.Rdata")
 N <- dim(data)[1]
 
-#data$sex <- as.factor(data$sex)
-#data$status <- as.factor(data$status)
-#data$savings <- as.factor(data$savings)
-#data$housing <- as.factor(data$housing)
-
 #polr(formula = housing ~ age + sex, data = data) # -2.260, -1.051
 #polr(formula = savings ~ age + sex, data = data) # -1.472, 1.335, 2.115, 3.021
 #polr(formula = status ~ age + sex, data = data) # -0.420, 0.716, 2.720
-
 
 set.seed(0)
 trainIndex <- createDataPartition(data$credit_risk, p = .8, list = FALSE, times = 1)
@@ -113,11 +107,6 @@ model_test = jags.model('gcd_model_u.jags',
 update(model_test, 10000)
 samples_u = coda.samples(model_test, c('u'), n.iter = 10000)
 
-#params_u <- c("u[10]")
-#plot(samples_u[,params_u])
-#gelman.diag(samples_u[,params_u])
-#gelman.plot(samples_u[,params_u])
-
 mcmcMat_u = as.matrix(samples_u , chains=FALSE )
 u_test <- colMeans(mcmcMat_u)
 
@@ -137,94 +126,89 @@ confusionMatrix(data=pred, X_te$credit_risk, positive='1')
 
 pred_raw <- predict(classifier, newdata=X_te, type="prob")[,'1']
 
-# Train accuracy
-#predictions_raw <- predict(classifier, type='response')
-#predictions <- ifelse(predictions_raw > 0.5, 1, 0)
-#error <- mean(predictions != train$credit_risk)
-#print(paste('Accuracy:', 1-error))
-
-# Test accuracy
-#predictions_raw_te <- predict(classifier, newdata=X_te, type='response')
-#predictions_te <- ifelse(predictions_raw_te > 0.5, 1, 0)
-#error_te <- mean(predictions_te != test$credit_risk)
-#print(paste('Accuracy:', 1-error_te))
-
-
-# Plot
-#pred_m_te <- predictions_raw_te[male_test_idx]
-#m_compare_te <- data.frame(pred=pred_m_te, type=as.factor(rep("original", length(pred_m_te))))
-#pred_m_CF <- predictions_raw_CF[male_test_idx] 
-#m_compare_CF <- data.frame(pred=pred_m_CF, type=as.factor(rep("counterfactual", length(pred_m_CF))))
-#m_compare <- rbind(m_compare_te, m_compare_CF)
-
-#pred_f_te <- predictions_raw_te[-male_test_idx]
-#f_compare_te <- data.frame(pred=pred_f_te, type=as.factor(rep("original", length(pred_f_te))))
-#pred_f_CF <- predictions_raw_CF[-male_test_idx] 
-#f_compare_CF <- data.frame(pred=pred_f_CF, type=as.factor(rep("counterfactual", length(pred_f_CF))))
-#f_compare <- rbind(f_compare_te, f_compare_CF)
-
-
-# Comparison
-#cols = c("black", "red")
-#sm.options(col=cols, lty=c(1,2), lwd=2)
-
-#sm.density.compare(m_compare$pred, m_compare$type, xlab="Credit risk probability", model="equal")
-#title("Density plot comparison of sex (M)")
-#legend("topright", legend=levels(m_compare$type), fill=2+(0:nlevels(m_compare$type)))
-
-#sm.density.compare(f_compare$pred, f_compare$type, xlab="Credit risk probability", model="equal")
-#title("Density plot comparison of sex (F)")
-#legend("topright", legend=levels(f_compare$type), fill=2+(0:nlevels(f_compare$type)))
-
 
 # Statistical fairness
-male_pred <- pred[male_test_idx]
-male_te <- test$credit_risk[male_test_idx]
-female_pred <- pred[-male_test_idx]
-female_te <- test$credit_risk[-male_test_idx]
+male_pred <- pred[male_test_idx] # male predictions
+male_te <- test$credit_risk[male_test_idx] # male outcome
+female_pred <- pred[-male_test_idx] # female predictions
+female_te <- test$credit_risk[-male_test_idx] # female outcome
 
-demographic_parity_m <- length(male_pred[male_pred==1])/length(male_pred); demographic_parity_m
-demographic_parity_f <- length(female_pred[female_pred==1])/length(female_pred); demographic_parity_f
+N_m <- length(male_pred) # number of males
+N_f <- length(female_pred) # number of females
+
+pos_m <- length(male_pred[male_pred==1]) # number of males predicted in positive class (1)
+pos_f <- length(female_pred[female_pred==1]) # number of females predicted in positive class (1)
+
+neg_m <- length(male_pred[male_pred==0]) # number of males predicted in negative class (0)
+neg_f <- length(female_pred[female_pred==0]) # number of females predicted in negative class (0)
+
+TP_m <- sum(male_pred[male_te == 1] == male_te[male_te == 1]) # male true positives
+TP_f <- sum(female_pred[female_te == 1] == female_te[female_te == 1]) # female true positives
+
+FP_m <- sum(male_pred[male_te == 0] != male_te[male_te == 0]) # male false positives
+FP_f <- sum(female_pred[female_te == 0] != female_te[female_te == 0]) # female false positives
+
+FN_m <- sum(male_pred[male_te == 1] != male_te[male_te == 1]) # male false negatives
+FN_f = sum(female_pred[female_te == 1] != female_te[female_te == 1]) # female false negatives
+
+TN_m <- sum(male_pred[male_te == 0] == male_te[male_te == 0]) # male true negatives
+TN_f = sum(female_pred[female_te == 0] == female_te[female_te == 0]) # female true negatives
+
+
+# Demographic Parity
+demographic_parity_m <- pos_m/N_m; demographic_parity_m
+demographic_parity_f <- pos_f/N_f; demographic_parity_f
 
 # TPR = TP / (TP + FN)
-male_TP <- sum(male_pred[male_te == 1] == male_te[male_te == 1])
-male_TPR <- male_TP / length(male_te[male_te==1]); male_TPR
-female_TP <- sum(female_pred[female_te == 1] == female_te[female_te == 1])
-female_TPR <- female_TP / length(female_te[female_te==1]); female_TPR
+TPR_m <- TP_m / (TP_m + FN_m); TPR_m
+TPR_f <- TP_f / (TP_f + FN_f); TPR_f
 
 # FPR = FP / (FP + TN)
-male_FP <- sum(male_pred[male_te == 0] != male_te[male_te == 0])
-male_FPR <- male_FP / length(male_te[male_te==0]); male_FPR
-female_FP <- sum(female_pred[female_te == 0] != female_te[female_te == 0])
-female_FPR <- female_FP / length(female_te[female_te==0]); female_FPR
+FPR_m <- FP_m / (FP_m + TN_m); FPR_m
+FPR_f <- FP_f / (FP_f + TN_f); FPR_f
 
-# Calibration
-calibration_m <- mean(pred_raw[male_test_idx])
-calibration_f <- mean(pred_raw[-male_test_idx])
+# Positive Predictive Value (PPV) = TP / (TP + FP)
+ppv_m <- TP_m / pos_m; ppv_m
+ppv_f <- TP_f / pos_f; ppv_f
+
+# Negative Predictive Value (NPV) = TN / (TN + FN)
+npv_m <- TN_m / neg_m; npv_m
+npv_f <- TN_f / neg_f; npv_f
+
+# Overall accuracy equality
+oae_m <-  (TP_m + TN_m) / N_m; oae_m
+oae_f <-  (TP_f + TN_f) / N_f; oae_f
+
+# Balance for positive class
+bpc_m <- mean(pred_raw[male_test_idx][male_te == 1]); bpc_m
+bpc_f <- mean(pred_raw[-male_test_idx][female_te == 1]); bpc_f
+
+# Balance for negative class
+bnc_m <- mean(pred_raw[male_test_idx][male_te == 0]); bnc_m
+bnc_f <- mean(pred_raw[-male_test_idx][female_te == 0]); bnc_f
 
 
-#N_m <- length(male_pred)
-#N_f <- length(female_pred)
-good_m <- length(male_pred[male_pred==0])
-good_f <- length(female_pred[female_pred==0])
-bad_m <- length(male_pred[male_pred==1])
-bad_f <- length(female_pred[female_pred==1])
-
-DP_mat <- rbind(c(good_m, bad_m), c(good_f, bad_f))
+# Signficance testing (Fisher Exact test)
+DP_mat <- rbind(c(neg_m, pos_m), c(neg_f, pos_f))
 fisher.test(DP_mat, alternative="two.sided") # p = 0.1485
 
-# TP + FN = Positives
-male_FN <- sum(male_pred[male_te == 1] != male_te[male_te == 1])
-female_FN = sum(female_pred[female_te == 1] != female_te[female_te == 1])
+TPR_mat <- rbind(c(TP_m, FN_m), c(TP_f, FN_f))
+fisher.test(TPR_mat, alternative="two.sided") # p = 0.3858
 
-TPR_mat <- rbind(c(male_TP, male_FN), c(female_TP, female_FN))
-fisher.test(TPR_mat, alternative="two.sided")
+FPR_mat <- rbind(c(TN_m, FP_m), c(TN_f, FP_f))
+fisher.test(FPR_mat, alternative="two.sided") # p = 1
 
-# TN + FP = Negatives
-male_TN <- sum(male_pred[male_te == 0] == male_te[male_te == 0])
-female_TN = sum(female_pred[female_te == 0] == female_te[female_te == 0])
+ppv_mat <- rbind(c(TP_m, FP_m), c(TP_f, FP_f))
+fisher.test(ppv_mat, alternative="two.sided") # p = 0.5238
 
-FPR_mat <- rbind(c(male_TN, male_FP), c(female_TN, female_FP))
-fisher.test(FPR_mat, alternative="two.sided")
+npv_mat <- rbind(c(TN_m, FN_m), c(TN_f, FN_f))
+fisher.test(npv_mat, alternative="two.sided") # p = 0.1176
 
-t.test(pred_raw[male_test_idx], pred_raw[-male_test_idx]) # 0.007466
+oae_mat <- rbind(c(TP_m+TN_m, FP_m+FN_m), c(TP_f+TN_f, FP_f+FN_f))
+fisher.test(oae_mat, alternative="two.sided") # p = 0.1801
+prop.test(x=c(TP_m+TN_m, TP_f+TN_f), n=c(N_m, N_f), alternative="two.sided") # p = 0.2268
+
+# Balance for positive class
+t.test(pred_raw[male_test_idx][male_te == 1], pred_raw[-male_test_idx][female_te == 1]) # p = 0.529
+t.test(pred_raw[male_test_idx][male_te == 0], pred_raw[-male_test_idx][female_te == 0]) # p = 0.01718
+
