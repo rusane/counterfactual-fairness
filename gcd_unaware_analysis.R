@@ -22,14 +22,24 @@ unaware <- train(credit_risk ~ . - sex, method="glm", data=train, family="binomi
 pred <- predict(unaware, newdata=test)
 confusionMatrix(data=pred, test$credit_risk, positive='1')
 
-#pred <- ifelse(pred_raw > 0.5, 1, 0)
-#error <- mean(pred != test$credit_risk)
-#print(paste('Accuracy:', 1-error))
 
-#TN <- sum(pred[test$credit_risk == 0] == test$credit_risk[test$credit_risk == 0])
-#TP <- sum(pred[test$credit_risk == 1] == test$credit_risk[test$credit_risk == 1])
-#FN <- sum(pred[test$credit_risk == 1] != test$credit_risk[test$credit_risk == 1])
-#FP <- sum(pred[test$credit_risk == 0] != test$credit_risk[test$credit_risk == 0])
+
+# Samples with original sex
+load("data_samples_og.Rdata")
+data_og$credit_risk <- as.factor(data_og$credit_risk)
+
+pred <- predict(unaware, newdata=data_og)
+confusionMatrix(data=pred, data_og$credit_risk, positive='1')
+pred_raw <- predict(unaware, newdata=data_og, type="prob")[,'1']
+
+# Samples with counterfactual sex
+load("data_samples_cf.Rdata")
+data_cf$credit_risk <- as.factor(data_cf$credit_risk)
+
+pred_CF <- predict(unaware, newdata=data_cf)
+confusionMatrix(data=pred_CF, data_cf$credit_risk, positive='1')
+pred_raw_CF <- predict(unaware, newdata=data_cf, type="prob")[,'1']
+
 
 
 
@@ -51,7 +61,7 @@ male_test_idx <- which(test$sex %in% '0')
 cv <- trainControl(method = "cv", number = 10)
 
 #unaware <- glm(credit_risk ~ . - sex - u, family=binomial("logit"), data=train)
-unaware <- train(credit_risk ~ . - sex, method="glm", data=train, family="binomial", trControl=cv)
+unaware <- train(credit_risk ~ . - sex - u, method="glm", data=train, family="binomial", trControl=cv)
 
 pred <- predict(unaware, newdata=test)
 confusionMatrix(data=pred, test$credit_risk, positive='1')
@@ -71,18 +81,18 @@ data_cf$credit_risk <- as.factor(data_cf$credit_risk)
 
 
 set.seed(0)
-trainIndex_CF <- createDataPartition(data_cf$credit_risk, p = .8, 
-                                     list = FALSE, 
-                                     times = 1)
-train_CF <- data_cf[trainIndex_CF,]
-test_CF <- data_cf[-trainIndex_CF,]
+#trainIndex_CF <- createDataPartition(data_cf$credit_risk, p = .8, 
+#                                     list = FALSE, 
+#                                     times = 1)
+train_CF <- data_cf[trainIndex,]
+test_CF <- data_cf[-trainIndex,]
 N_train_CF <- dim(train_CF)[1]
 N_test_CF <- dim(test_CF)[1]
 male_test_idx_CF <- which(test_CF$sex %in% '0')
 cv <- trainControl(method = "cv", number = 10)
 
 #unaware_CF <- glm(credit_risk ~ . - sex - u, family=binomial("logit"), data=train_CF)
-unaware_CF <- train(credit_risk ~ . - sex, method="glm", data=train_CF, family="binomial", trControl=cv)
+unaware_CF <- train(credit_risk ~ . - sex - u, method="glm", data=train_CF, family="binomial", trControl=cv)
 
 pred_CF <- predict(unaware_CF, newdata=test_CF)
 confusionMatrix(data=pred_CF, test_CF$credit_risk, positive='1')
@@ -93,29 +103,6 @@ confusionMatrix(data=pred_CF, test_CF$credit_risk, positive='1')
 #print(paste('Accuracy:', 1-error_CF))
 
 pred_raw_CF <- predict(unaware_CF, newdata=test_CF, type="prob")[,'1']
-
-
-
-# Statistical fairness
-male_pred <- pred[male_test_idx]
-male_te <- test$credit_risk[male_test_idx]
-female_pred <- pred[-male_test_idx]
-female_te <- test$credit_risk[-male_test_idx]
-
-demographic_parity_m <- length(male_pred[male_pred==1])/length(male_pred); demographic_parity_m
-demographic_parity_f <- length(female_pred[female_pred==1])/length(female_pred); demographic_parity_f
-
-# TPR = TP / (TP + FN)
-male_TP <- sum(male_pred[male_te == 1] == male_te[male_te == 1])
-male_TPR <- male_TP / length(male_te[male_te==1]); male_TPR
-female_TP <- sum(female_pred[female_te == 1] == female_te[female_te == 1])
-female_TPR <- female_TP / length(female_te[female_te==1]); female_TPR
-
-# FPR = FP / (FP + TN)
-male_FP <- sum(male_pred[male_te == 0] != male_te[male_te == 0])
-male_FPR <- male_FP / length(male_te[male_te==0]); male_FPR
-female_FP <- sum(female_pred[female_te == 0] != female_te[female_te == 0])
-female_FPR <- female_FP / length(female_te[female_te==0]); female_FPR
 
 
 
@@ -150,6 +137,6 @@ original <- data.frame(pred=pred_raw, type=as.factor(rep("original", N_test)))
 counterfactual <- data.frame(pred=pred_raw_CF, type=as.factor(rep("counterfactual", N_test)))
 compare <- rbind(original, counterfactual)
 sm.density.compare(compare$pred, compare$type, xlab="Credit risk probability", model="equal")
-title("Density plot comparison of sex")
+title("Density plot comparison of sex (unaware)")
 legend("topright", legend=levels(compare$type), fill=cols)
 

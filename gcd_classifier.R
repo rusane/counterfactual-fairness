@@ -86,6 +86,8 @@ stat_a <- means["stat_a"]
 stat_c <- means["stat_c"]
 
 u_train <- means[23:length(means)]
+#data_train_u <- data.frame(train, "u" = u_train)
+#save(data_train_u, file='data_train_u.Rdata')
 
 
 
@@ -206,7 +208,7 @@ fisher.test(npv_mat, alternative="two.sided") # p = 0.1176
 
 oae_mat <- rbind(c(TP_m+TN_m, FP_m+FN_m), c(TP_f+TN_f, FP_f+FN_f))
 fisher.test(oae_mat, alternative="two.sided") # p = 0.1801
-prop.test(x=c(TP_m+TN_m, TP_f+TN_f), n=c(N_m, N_f), alternative="two.sided") # p = 0.2268
+#prop.test(x=c(TP_m+TN_m, TP_f+TN_f), n=c(N_m, N_f), alternative="two.sided") # p = 0.2268
 
 # Balance for positive class
 t.test(pred_raw[male_test_idx][male_te == 1], pred_raw[-male_test_idx][female_te == 1]) # p = 0.529
