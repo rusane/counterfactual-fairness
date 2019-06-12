@@ -6,12 +6,9 @@ library(sm)
 load("gcd_data_bin.Rdata")
 N <- dim(data)[1]
 
-#polr(formula = housing ~ age + sex, data = data) # -2.260, -1.051
-#polr(formula = savings ~ age + sex, data = data) # -1.472, 1.335, 2.115, 3.021
-#polr(formula = status ~ age + sex, data = data) # -0.420, 0.716, 2.720
-
 set.seed(0)
 trainIndex <- createDataPartition(data$credit_risk, p = .8, list = FALSE, times = 1)
+#save(trainIndex, file="trainIndex.Rdata")
 train <- data[trainIndex,]
 test <- data[-trainIndex,]
 N_train <- dim(train)[1]
@@ -19,15 +16,6 @@ N_test <- dim(test)[1]
 male_test_idx <- which(test$sex %in% '0')
 
 ### Training the model
-#load.module("glm")
-
-#cut_hous = c(-0.1, 0.1)
-#cut_sav = c(-0.3, -0.1, 0.1, 0.3)
-#cut_stat = c(-0.2, 0, 0.2)
-#cut_hous = c(-2.260, -1.051)
-#cut_sav = c(-1.472, 1.335, 2.115, 3.021)
-#cut_stat = c(-0.420, 0.716, 2.720)
-
 model = jags.model('gcd_model_train.jags',
                    data = list('N' = N_train, 'y' = train$credit_risk, 'a' = train$sex, 
                                'amt' = train$amount, 'dur' = train$duration,
@@ -49,6 +37,7 @@ samples = coda.samples(model, c('u',
                        n.iter = 10000,
                        thin = 2)
 #save(samples, file='seed0_bin.Rdata')
+#load(seed0_bin.Rdata)
 
 params <- c("u[1]", "dur_u", "amt_u")
 plot(samples[,params])
@@ -90,7 +79,6 @@ u_train <- means[23:length(means)]
 #save(data_train_u, file='data_train_u.Rdata')
 
 
-
 ### Learning u for test data using learned parameters
 model_test = jags.model('gcd_model_u.jags',
                    data = list('N' = N_test, 'a' = test$sex, 
@@ -124,6 +112,7 @@ X_te$credit_risk <- as.factor(X_te$credit_risk)
 classifier <- train(credit_risk ~ u + age, method="glm", data=X, family="binomial", trControl=cv)
 
 pred <- predict(classifier, newdata=X_te)
+#save(pred, file="pred_fair.Rdata")
 confusionMatrix(data=pred, X_te$credit_risk, positive='1')
 
 pred_raw <- predict(classifier, newdata=X_te, type="prob")[,'1']
@@ -214,3 +203,56 @@ fisher.test(oae_mat, alternative="two.sided") # p = 0.1801
 t.test(pred_raw[male_test_idx][male_te == 1], pred_raw[-male_test_idx][female_te == 1]) # p = 0.529
 t.test(pred_raw[male_test_idx][male_te == 0], pred_raw[-male_test_idx][female_te == 0]) # p = 0.01718
 
+
+# Model comparison: accuracy
+load("pred_fair.Rdata")
+pred_fair <- pred
+load("pred_full.Rdata")
+pred_full <- pred
+load("pred_unaware.Rdata")
+pred_unaware <- pred
+pred <- NULL # avoid issues
+
+fair_correct <- which(pred_fair == test$credit_risk)
+full_correct <- which(pred_full == test$credit_risk)
+unaware_correct <- which(pred_unaware == test$credit_risk)
+
+fair_wrong <- which(pred_fair != test$credit_risk)
+full_wrong <- which(pred_full != test$credit_risk)
+unaware_wrong <- which(pred_unaware != test$credit_risk)
+
+# Fair vs Full
+correct_fair_full <- length(which(fair_correct %in% full_correct)); correct_fair_full
+wrong_fair_full <- length(which(fair_wrong %in% full_wrong)); wrong_fair_full
+correct_fair_wrong_full <- length(which(fair_correct %in% full_wrong)); correct_fair_wrong_full
+correct_full_wrong_fair <- length(which(full_correct %in% fair_wrong)); correct_full_wrong_fair
+
+fair_full <- matrix(c(correct_fair_full, correct_full_wrong_fair, correct_fair_wrong_full, wrong_fair_full),
+         nrow = 2,
+         dimnames = list("fair" = c("correct", "wrong"),
+                         "full" = c("correct", "wrong"))); fair_full
+mcnemar.test(fair_full)
+
+# Fair vs Unaware
+correct_fair_unaware <- length(which(fair_correct %in% unaware_correct)); correct_fair_unaware
+wrong_fair_unaware <- length(which(fair_wrong %in% unaware_wrong)); wrong_fair_unaware
+correct_fair_wrong_unaware <- length(which(fair_correct %in% unaware_wrong)); correct_fair_wrong_unaware
+correct_unaware_wrong_fair <- length(which(unaware_correct %in% fair_wrong)); correct_unaware_wrong_fair
+
+fair_unaware <- matrix(c(correct_fair_unaware, correct_unaware_wrong_fair, correct_fair_wrong_unaware, wrong_fair_unaware),
+                    nrow = 2,
+                    dimnames = list("fair" = c("correct", "wrong"),
+                                    "unaware" = c("correct", "wrong"))); fair_unaware
+mcnemar.test(fair_unaware)
+
+# Full vs Unaware
+correct_full_unaware <- length(which(full_correct %in% unaware_correct)); correct_full_unaware
+wrong_full_unaware <- length(which(full_wrong %in% unaware_wrong)); wrong_full_unaware
+correct_full_wrong_unaware <- length(which(full_correct %in% unaware_wrong)); correct_full_wrong_unaware
+correct_unaware_wrong_full <- length(which(unaware_correct %in% full_wrong)); correct_unaware_wrong_full
+
+full_unaware <- matrix(c(correct_full_unaware, correct_unaware_wrong_full, correct_full_wrong_unaware, wrong_full_unaware),
+                       nrow = 2,
+                       dimnames = list("full" = c("correct", "wrong"),
+                                       "unaware" = c("correct", "wrong"))); full_unaware
+mcnemar.test(full_unaware)

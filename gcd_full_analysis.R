@@ -2,14 +2,16 @@ library(caret)
 library(sm)
 
 # Baseline evaluation
-load("gcd_data.Rdata")
+load("gcd_data_norm.Rdata")
 N <- dim(data)[1]
-data$credit_risk <- as.factor(data$credit_risk)
+#data$credit_risk <- as.factor(data$credit_risk)
 
 set.seed(0)
 trainIndex <- createDataPartition(data$credit_risk, p = .8, 
                                   list = FALSE, 
                                   times = 1)
+data$credit_risk <- as.factor(data$credit_risk)
+#load("trainIndex.Rdata")
 train <- data[trainIndex,]
 test <- data[-trainIndex,]
 N_train <- dim(train)[1]
@@ -20,6 +22,7 @@ cv <- trainControl(method = "cv", number = 10)
 full <- train(credit_risk ~ ., method="glm", data=train, family="binomial", trControl=cv)
 
 pred <- predict(full, newdata=test)
+#save(pred, file="pred_full.Rdata")
 confusionMatrix(data=pred, test$credit_risk, positive='1')
 
 
@@ -111,7 +114,7 @@ f_compare_unfair <- rbind(f_compare_full, f_compare_full_CF)
 
 # Comparison
 cols = c("black", "red")
-sm.options(col=cols, lty=c(1,1), lwd=2)
+sm.options(col=cols, lty=c(1,2), lwd=2)
 
 sm.density.compare(m_compare_unfair$pred, m_compare_unfair$type, xlab="Credit risk probability", model="equal")
 title("Density plot comparison of sex (M)")

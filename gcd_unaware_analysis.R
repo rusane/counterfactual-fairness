@@ -2,14 +2,14 @@ library(caret)
 library(sm)
 
 # Baseline evaluation
-load("gcd_data.Rdata")
+load("gcd_data_norm.Rdata")
 N <- dim(data)[1]
-data$credit_risk <- as.factor(data$credit_risk)
 
 set.seed(0)
 trainIndex <- createDataPartition(data$credit_risk, p = .8, 
                                   list = FALSE, 
                                   times = 1)
+data$credit_risk <- as.factor(data$credit_risk)
 train <- data[trainIndex,]
 test <- data[-trainIndex,]
 N_train <- dim(train)[1]
@@ -20,6 +20,7 @@ unaware <- train(credit_risk ~ . - sex, method="glm", data=train, family="binomi
 #unaware <- glm(credit_risk ~ . - sex, family=binomial("logit"), data=train)
 
 pred <- predict(unaware, newdata=test)
+#save(pred, file="pred_unaware.Rdata")
 confusionMatrix(data=pred, test$credit_risk, positive='1')
 
 
