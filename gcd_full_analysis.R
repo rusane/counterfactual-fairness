@@ -58,9 +58,7 @@ N_m <- N_f <- pos_m <- pos_f <- neg_m <- neg_f <- TP_m <- TP_f <- FP_m <- FP_f <
 positive_balance_m <- positive_balance_f <- negative_balance_m <- negative_balance_f <- vector()
 for (i in 0:4) {
   set.seed(i)
-  trainIndex <- createDataPartition(data$credit_risk, p = .8, 
-                                    list = FALSE, 
-                                    times = 1)
+  trainIndex <- createDataPartition(data$credit_risk, p = .8, list = FALSE, times = 1)
   train <- data[trainIndex,]
   test <- data[-trainIndex,]
   N_train <- dim(train)[1]
@@ -143,23 +141,23 @@ bnc_f <- mean(negative_balance_f); bnc_f
 
 # Signficance testing (Fisher Exact test)
 DP_mat <- rbind(c(neg_m, pos_m), c(neg_f, pos_f))
-fisher.test(DP_mat, alternative="two.sided") # p = 0.1367
+fisher.test(DP_mat, alternative="two.sided") # p = 
 
 TPR_mat <- rbind(c(TP_m, FN_m), c(TP_f, FN_f))
-fisher.test(TPR_mat, alternative="two.sided") # p = 0.7898
+fisher.test(TPR_mat, alternative="two.sided") # p = 
 
 FPR_mat <- rbind(c(TN_m, FP_m), c(TN_f, FP_f))
-fisher.test(FPR_mat, alternative="two.sided") # p = 2011
+fisher.test(FPR_mat, alternative="two.sided") # p = 
 
 ppv_mat <- rbind(c(TP_m, FP_m), c(TP_f, FP_f))
-fisher.test(ppv_mat, alternative="two.sided") # p = 0.5916
+fisher.test(ppv_mat, alternative="two.sided") # p = 
 
 npv_mat <- rbind(c(TN_m, FN_m), c(TN_f, FN_f))
-fisher.test(npv_mat, alternative="two.sided") # p = 0.08966
+fisher.test(npv_mat, alternative="two.sided") # p =
 
 oae_mat <- rbind(c(TP_m+TN_m, FP_m+FN_m), c(TP_f+TN_f, FP_f+FN_f))
-fisher.test(oae_mat, alternative="two.sided") # p = 0.2057
+fisher.test(oae_mat, alternative="two.sided") # p = 
 
 # t-test
-t.test(pred_raw[male_test_idx][male_te == 1], pred_raw[-male_test_idx][female_te == 1]) # p = 0.5401
-t.test(pred_raw[male_test_idx][male_te == 0], pred_raw[-male_test_idx][female_te == 0]) # p = 0.01695
+t.test(pred_raw[male_test_idx][male_te == 1], pred_raw[-male_test_idx][female_te == 1]) # p = 
+t.test(pred_raw[male_test_idx][male_te == 0], pred_raw[-male_test_idx][female_te == 0]) # p = 
