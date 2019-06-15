@@ -1,14 +1,13 @@
 require(rjags)
 require(coda)
 library(caret)
-library(sm)
+library(doBy)
 
 load("gcd_data_bin.Rdata")
 N <- dim(data)[1]
 
 set.seed(0)
 trainIndex <- createDataPartition(data$credit_risk, p = .8, list = FALSE, times = 1)
-#save(trainIndex, file="trainIndex.Rdata")
 train <- data[trainIndex,]
 test <- data[-trainIndex,]
 N_train <- dim(train)[1]
@@ -21,8 +20,6 @@ model = jags.model('gcd_model_train.jags',
                                'amt' = train$amount, 'dur' = train$duration,
                                'age' = train$age,
                                'hous' = train$housing, 'sav' = train$savings, 'stat' = train$status
-                               #'nhous' = 2, 'nsav' = 4, 'nstat' = 3,
-                               #'cut_hous' = cut_hous, 'cut_sav' = cut_sav, 'cut_stat' = cut_stat
                                ),
                    n.chains = 1,
                    n.adapt = 1000)
@@ -39,8 +36,8 @@ samples = coda.samples(model, c('u',
 #save(samples, file='seed0_bin.Rdata')
 #load(seed0_bin.Rdata)
 
-params <- c("u[1]", "dur_u", "amt_u")
-plot(samples[,params])
+#params <- c("u[1]", "dur_u", "amt_u")
+#plot(samples[,params])
 #gelman.diag(samples[,params])
 #gelman.plot(samples[,params])
 
@@ -79,7 +76,7 @@ u_train <- means[23:length(means)]
 #save(data_train_u, file='data_train_u.Rdata')
 
 
-### Learning u for test data using learned parameters
+### Learn U for test data using learned parameters
 model_test = jags.model('gcd_model_u.jags',
                    data = list('N' = N_test, 'a' = test$sex, 
                                'amt' = test$amount, 'dur' = test$duration,
@@ -89,8 +86,6 @@ model_test = jags.model('gcd_model_u.jags',
                                'hous0' = hous0, 'hous_u' = hous_u, 'hous_a' = hous_a, 'hous_c' = hous_c,
                                'sav0' = sav0, 'sav_u'= sav_u, 'sav_a' = sav_a, 'sav_c' = sav_c,
                                'stat0' = stat0, 'stat_u' = stat_u, 'stat_a' = stat_a, 'stat_c' = stat_c
-                               # 'nhous' = 2, 'nsav' = 4, 'nstat' = 3,
-                               # 'cut_hous' = cut_hous, 'cut_sav' = cut_sav, 'cut_stat' = cut_stat
                    ),
                    n.chains = 1,
                    n.adapt = 1000)
@@ -99,23 +94,27 @@ samples_u = coda.samples(model_test, c('u'), n.iter = 10000)
 
 mcmcMat_u = as.matrix(samples_u , chains=FALSE )
 u_test <- colMeans(mcmcMat_u)
+#data_test_u <- data.frame(test, "u" = u_test)
+#save(data_test_u, file='data_test_u.Rdata')
 
 
 # Classifier
 X <- data.frame(u=u_train, age=train$age, credit_risk=train$credit_risk)
 X_te <- data.frame(u=u_test, age=test$age, credit_risk=test$credit_risk)
-cv <- trainControl(method = "cv", number = 10)
 X$credit_risk <- as.factor(X$credit_risk)
 X_te$credit_risk <- as.factor(X_te$credit_risk)
 
-#classifier <- glm(credit_risk ~ u + age, family=binomial("logit"), data=X)
-classifier <- train(credit_risk ~ u + age, method="glm", data=X, family="binomial", trControl=cv)
+classifier <- glm(credit_risk ~ u + age, family=binomial("logit"), data=X)
 
-pred <- predict(classifier, newdata=X_te)
+pred_raw <- predict(classifier, newdata=X_te, type='response')
+max_risk_idx <- which.maxn(pred_raw, 60)
+pred <- pred_raw
+pred[max_risk_idx] <- 1
+pred[-max_risk_idx] <- 0
+pred <- as.factor(pred)
 #save(pred, file="pred_fair.Rdata")
 confusionMatrix(data=pred, X_te$credit_risk, positive='1')
 
-pred_raw <- predict(classifier, newdata=X_te, type="prob")[,'1']
 
 
 # Statistical fairness
@@ -124,26 +123,26 @@ male_te <- test$credit_risk[male_test_idx] # male outcome
 female_pred <- pred[-male_test_idx] # female predictions
 female_te <- test$credit_risk[-male_test_idx] # female outcome
 
-N_m <- length(male_pred) # number of males
-N_f <- length(female_pred) # number of females
+N_m <- length(male_pred); N_m # number of males
+N_f <- length(female_pred); N_f # number of females
 
-pos_m <- length(male_pred[male_pred==1]) # number of males predicted in positive class (1)
-pos_f <- length(female_pred[female_pred==1]) # number of females predicted in positive class (1)
+pos_m <- length(male_pred[male_pred==1]); pos_m # number of males predicted in positive class (1)
+pos_f <- length(female_pred[female_pred==1]); pos_f # number of females predicted in positive class (1)
 
-neg_m <- length(male_pred[male_pred==0]) # number of males predicted in negative class (0)
-neg_f <- length(female_pred[female_pred==0]) # number of females predicted in negative class (0)
+neg_m <- length(male_pred[male_pred==0]); neg_m # number of males predicted in negative class (0)
+neg_f <- length(female_pred[female_pred==0]); neg_f # number of females predicted in negative class (0)
 
-TP_m <- sum(male_pred[male_te == 1] == male_te[male_te == 1]) # male true positives
-TP_f <- sum(female_pred[female_te == 1] == female_te[female_te == 1]) # female true positives
+TP_m <- sum(male_pred[male_te == 1] == male_te[male_te == 1]); TP_m # male true positives
+TP_f <- sum(female_pred[female_te == 1] == female_te[female_te == 1]); TP_f # female true positives
 
-FP_m <- sum(male_pred[male_te == 0] != male_te[male_te == 0]) # male false positives
-FP_f <- sum(female_pred[female_te == 0] != female_te[female_te == 0]) # female false positives
+FP_m <- sum(male_pred[male_te == 0] != male_te[male_te == 0]); FP_m # male false positives
+FP_f <- sum(female_pred[female_te == 0] != female_te[female_te == 0]); FP_f # female false positives
 
-FN_m <- sum(male_pred[male_te == 1] != male_te[male_te == 1]) # male false negatives
-FN_f = sum(female_pred[female_te == 1] != female_te[female_te == 1]) # female false negatives
+FN_m <- sum(male_pred[male_te == 1] != male_te[male_te == 1]); FN_m # male false negatives
+FN_f = sum(female_pred[female_te == 1] != female_te[female_te == 1]); FN_f # female false negatives
 
-TN_m <- sum(male_pred[male_te == 0] == male_te[male_te == 0]) # male true negatives
-TN_f = sum(female_pred[female_te == 0] == female_te[female_te == 0]) # female true negatives
+TN_m <- sum(male_pred[male_te == 0] == male_te[male_te == 0]); TN_m # male true negatives
+TN_f <- sum(female_pred[female_te == 0] == female_te[female_te == 0]); TN_f # female true negatives
 
 
 # Demographic Parity
@@ -181,30 +180,29 @@ bnc_f <- mean(pred_raw[-male_test_idx][female_te == 0]); bnc_f
 
 # Signficance testing (Fisher Exact test)
 DP_mat <- rbind(c(neg_m, pos_m), c(neg_f, pos_f))
-fisher.test(DP_mat, alternative="two.sided") # p = 0.1485
+fisher.test(DP_mat, alternative="two.sided") # p = 0.1367
 
 TPR_mat <- rbind(c(TP_m, FN_m), c(TP_f, FN_f))
-fisher.test(TPR_mat, alternative="two.sided") # p = 0.3858
+fisher.test(TPR_mat, alternative="two.sided") # p = 0.7898
 
 FPR_mat <- rbind(c(TN_m, FP_m), c(TN_f, FP_f))
-fisher.test(FPR_mat, alternative="two.sided") # p = 1
+fisher.test(FPR_mat, alternative="two.sided") # p = 2011
 
 ppv_mat <- rbind(c(TP_m, FP_m), c(TP_f, FP_f))
-fisher.test(ppv_mat, alternative="two.sided") # p = 0.5238
+fisher.test(ppv_mat, alternative="two.sided") # p = 0.5916
 
 npv_mat <- rbind(c(TN_m, FN_m), c(TN_f, FN_f))
-fisher.test(npv_mat, alternative="two.sided") # p = 0.1176
+fisher.test(npv_mat, alternative="two.sided") # p = 0.08966
 
 oae_mat <- rbind(c(TP_m+TN_m, FP_m+FN_m), c(TP_f+TN_f, FP_f+FN_f))
-fisher.test(oae_mat, alternative="two.sided") # p = 0.1801
-#prop.test(x=c(TP_m+TN_m, TP_f+TN_f), n=c(N_m, N_f), alternative="two.sided") # p = 0.2268
+fisher.test(oae_mat, alternative="two.sided") # p = 0.2057
 
 # Balance for positive class
-t.test(pred_raw[male_test_idx][male_te == 1], pred_raw[-male_test_idx][female_te == 1]) # p = 0.529
-t.test(pred_raw[male_test_idx][male_te == 0], pred_raw[-male_test_idx][female_te == 0]) # p = 0.01718
+t.test(pred_raw[male_test_idx][male_te == 1], pred_raw[-male_test_idx][female_te == 1]) # p = 0.5401
+t.test(pred_raw[male_test_idx][male_te == 0], pred_raw[-male_test_idx][female_te == 0]) # p = 0.01695
 
 
-# Model comparison: accuracy
+# Model comparison: accuracy (seed=0)
 load("pred_fair.Rdata")
 pred_fair <- pred
 load("pred_full.Rdata")
