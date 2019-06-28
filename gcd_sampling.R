@@ -6,7 +6,7 @@ library(sm)
 load("gcd_data_bin.Rdata")
 N <- dim(data)[1]
 
-model = jags.model('gcd_model_train.jags',
+model = jags.model('jags/gcd_model_train.jags',
                    data = list('N' = N, 'y' = data$credit_risk, 'a' = data$sex, 
                                'amt' = data$amount, 'dur' = data$duration,
                                'age' = data$age,
@@ -72,7 +72,7 @@ u <- means[23:(length(means)-9)]
 
 
 ### Sampling with observed sex (original samples)
-model_sampling = jags.model('gcd_model_sampling.jags',
+model_sampling = jags.model('jags/gcd_model_sampling.jags',
                         data = list('N' = N, 'a' = data$sex,
                                     'amt0' = amt0, 'amt_u' = amt_u, 'amt_a' = amt_a, 'amt_tau' = amt_tau, 'amt_c' = amt_c,
                                     'dur0' = dur0, 'dur_u' = dur_u, 'dur_a' = dur_a, 'dur_tau' = dur_tau, 'dur_c' = dur_c,
@@ -110,7 +110,7 @@ male_idx <- which(data$sex %in% '0')
 sex_cf[male_idx] <- 1
 sex_cf[-male_idx] <- 0
 
-model_sampling_cf = jags.model('gcd_model_sampling.jags',
+model_sampling_cf = jags.model('jags/gcd_model_sampling.jags',
                             data = list('N' = N, 'u' = u_og, 'age' = age_og, 'a' = sex_cf,
                                         'amt0' = amt0, 'amt_u' = amt_u, 'amt_a' = amt_a, 'amt_tau' = amt_tau, 'amt_c' = amt_c,
                                         'dur0' = dur0, 'dur_u' = dur_u, 'dur_a' = dur_a, 'dur_tau' = dur_tau, 'dur_c' = dur_c,

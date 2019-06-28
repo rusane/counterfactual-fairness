@@ -15,7 +15,7 @@ N_test <- dim(test)[1]
 male_test_idx <- which(test$sex %in% '0')
 
 ### Training the causal model
-model = jags.model('gcd_model_train.jags',
+model = jags.model('jags/gcd_model_train.jags',
                    data = list('N' = N_train, 'y' = train$credit_risk, 'a' = train$sex, 
                                'amt' = train$amount, 'dur' = train$duration,
                                'age' = train$age,
@@ -77,7 +77,7 @@ u_train <- means[23:length(means)]
 
 
 ### Learn U for test data using learned parameters
-model_test = jags.model('gcd_model_u.jags',
+model_test = jags.model('jags/gcd_model_u.jags',
                    data = list('N' = N_test, 'a' = test$sex, 
                                'amt' = test$amount, 'dur' = test$duration,
                                'age' = test$age,
