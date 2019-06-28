@@ -58,7 +58,16 @@ data$status <- as.vector(data$status)
 data$status[data$status == "A11" | data$status == "A14"] <- 0 # no or < 0 DM
 data$status[data$status == "A12" | data$status == "A13"] <- 1 # >= 0 DM
 
+data$sex <- as.numeric(data$sex)
+data$status <- as.numeric(data$status)
+data$savings <- as.numeric(data$savings)
+data$housing <- as.numeric(data$housing)
 
+save(data, file="gcd_data_bin.Rdata")
+
+
+
+### Not used anymore
 # Convert categorical attributes to ordinal scale
 # data$status <- as.vector(data$status)
 # data$status[data$status == "A11"] <- 2
@@ -78,38 +87,30 @@ data$status[data$status == "A12" | data$status == "A13"] <- 1 # >= 0 DM
 # data$housing[data$housing == "A152"] <- 3
 # data$housing[data$housing == "A153"] <- 1
 
-data$sex <- as.numeric(data$sex)
-data$status <- as.numeric(data$status)
-data$savings <- as.numeric(data$savings)
-data$housing <- as.numeric(data$housing)
+# save(data, file='gcd_data_ord.Rdata')
 
-save(data, file="gcd_data_bin.Rdata")
-
-
-
-# Not used anymore
 # One hot encoding of the categorical variables
-levels(data$status) # 4 levels
-data$status1 <- as.numeric(data$status == "A11")
-data$status2 <- as.numeric(data$status == "A12")
-data$status3 <- as.numeric(data$status == "A13")
-data$status4 <- as.numeric(data$status == "A14")
+# levels(data$status) # 4 levels
+# data$status1 <- as.numeric(data$status == "A11")
+# data$status2 <- as.numeric(data$status == "A12")
+# data$status3 <- as.numeric(data$status == "A13")
+# data$status4 <- as.numeric(data$status == "A14")
 
-levels(data$savings) # 5 levels
-data$savings1 <- as.numeric(data$savings == "A61")
-data$savings2 <- as.numeric(data$savings == "A62")
-data$savings3 <- as.numeric(data$savings == "A63")
-data$savings4 <- as.numeric(data$savings == "A64")
-data$savings5 <- as.numeric(data$savings == "A65")
+# levels(data$savings) # 5 levels
+# data$savings1 <- as.numeric(data$savings == "A61")
+# data$savings2 <- as.numeric(data$savings == "A62")
+# data$savings3 <- as.numeric(data$savings == "A63")
+# data$savings4 <- as.numeric(data$savings == "A64")
+# data$savings5 <- as.numeric(data$savings == "A65")
 
-levels(data$housing) # 3 levels
-data$housing1 <- as.numeric(data$housing == "A151")
-data$housing2 <- as.numeric(data$housing == "A152")
-data$housing3 <- as.numeric(data$housing == "A153")
+# levels(data$housing) # 3 levels
+# data$housing1 <- as.numeric(data$housing == "A151")
+# data$housing2 <- as.numeric(data$housing == "A152")
+# data$housing3 <- as.numeric(data$housing == "A153")
 
 # Remove old columns of categorical attributes
-data <- within(data, rm("status","savings","housing"))
-data <- data[, !(colnames(data) %in% c("status","savings","housing"))]
+# data <- within(data, rm("status","savings","housing"))
+# data <- data[, !(colnames(data) %in% c("status","savings","housing"))]
 
 # Save preprocessed data
-save(data, file='gcd_data_hot.Rdata')
+# save(data, file='gcd_data_hot.Rdata')
