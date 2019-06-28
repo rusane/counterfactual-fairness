@@ -27,10 +27,6 @@ samples = coda.samples(model, c('u',
                        thin = 2)
 
 #save(samples, file="samples_bin.Rdata")
-params <- c("dur_u", "amt_u", "u[2]")
-plot(samples[,params])
-#gelman.diag(samples[,params])
-#gelman.plot(samples[,params])
 
 mcmcMat = as.matrix(samples, chains=FALSE )
 means <- colMeans(mcmcMat)
@@ -75,8 +71,7 @@ y_stat <- means["y_stat"]
 u <- means[23:(length(means)-9)]
 
 
-### Sampling with observed sex (original)
-
+### Sampling with observed sex (original samples)
 model_sampling = jags.model('gcd_model_sampling.jags',
                         data = list('N' = N, 'a' = data$sex,
                                     'amt0' = amt0, 'amt_u' = amt_u, 'amt_a' = amt_a, 'amt_tau' = amt_tau, 'amt_c' = amt_c,
@@ -91,11 +86,6 @@ model_sampling = jags.model('gcd_model_sampling.jags',
 update(model_sampling, 10000)
 data_attr = c('y', 'u', 'age', 'amt', 'dur', 'hous', 'sav', 'stat')
 sample_data = coda.samples(model_sampling, data_attr, n.iter = 1)
-
-params <- c("u[2]")
-plot(sample_data[,params])
-#gelman.diag(sample_data[,params])
-#gelman.plot(sample_data[,params])
 
 sample_mcmcMat = as.matrix(sample_data, chains=FALSE )
 sample_means <- colMeans(sample_mcmcMat)
@@ -114,8 +104,7 @@ rownames(data_og) = NULL
 save(data_og, file="data_samples_og.Rdata")
 
 
-### Sampling with counterfactual sex (counterfactual)
-
+### Sampling with counterfactual sex (counterfactual samples)
 sex_cf <- data$sex
 male_idx <- which(data$sex %in% '0')
 sex_cf[male_idx] <- 1
@@ -145,11 +134,7 @@ housing_cf <- round(sample_means_cf[2001:3000])
 savings_cf <- round(sample_means_cf[3001:4000])
 status_cf <- round(sample_means_cf[4001:5000])
 credit_risk_cf <- round(sample_means_cf[5001:6000])
-#u_cf <- sample_means_cf[6001:7000]
-#credit_risk <- round(sample_means_cf[6001:7000])
 
 data_cf <- data.frame("sex" = sex_cf, "age" = age_og, "amount" = amount_cf, "duration" = duration_cf, "housing" = housing_cf, "savings" = savings_cf, "status" = status_cf, "credit_risk" = credit_risk_cf, "u" = u_og)
 rownames(data_cf) = NULL
 save(data_cf, file="data_samples_cf.Rdata")
-
-

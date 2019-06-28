@@ -28,6 +28,8 @@ pred <- as.factor(pred)
 #save(pred, file="pred_full.Rdata")
 confusionMatrix(data=pred, test$credit_risk, positive='1')
 
+
+
 # Samples with original sex
 load("data_samples_og.Rdata")
 pred_raw <- predict(full, newdata=data_og, type="response")
@@ -51,7 +53,7 @@ legend("topright", legend=levels(compare$type), fill=cols)
 
 
 
-# Statistical fairness
+### Statistical fairness
 load("gcd_data_bin.Rdata")
 N <- dim(data)[1]
 N_m <- N_f <- pos_m <- pos_f <- neg_m <- neg_f <- TP_m <- TP_f <- FP_m <- FP_f <- FN_m <- FN_f <- TN_m <- TN_f <- 0
@@ -141,23 +143,31 @@ bnc_f <- mean(negative_balance_f); bnc_f
 
 # Signficance testing (Fisher Exact test)
 DP_mat <- rbind(c(neg_m, pos_m), c(neg_f, pos_f))
-fisher.test(DP_mat, alternative="two.sided") # p = 
+fisher.test(DP_mat, alternative="two.sided")
 
 TPR_mat <- rbind(c(TP_m, FN_m), c(TP_f, FN_f))
-fisher.test(TPR_mat, alternative="two.sided") # p = 
+fisher.test(TPR_mat, alternative="two.sided")
 
 FPR_mat <- rbind(c(TN_m, FP_m), c(TN_f, FP_f))
-fisher.test(FPR_mat, alternative="two.sided") # p = 
+fisher.test(FPR_mat, alternative="two.sided")
 
 ppv_mat <- rbind(c(TP_m, FP_m), c(TP_f, FP_f))
-fisher.test(ppv_mat, alternative="two.sided") # p = 
+fisher.test(ppv_mat, alternative="two.sided")
 
 npv_mat <- rbind(c(TN_m, FN_m), c(TN_f, FN_f))
-fisher.test(npv_mat, alternative="two.sided") # p =
+fisher.test(npv_mat, alternative="two.sided")
 
 oae_mat <- rbind(c(TP_m+TN_m, FP_m+FN_m), c(TP_f+TN_f, FP_f+FN_f))
-fisher.test(oae_mat, alternative="two.sided") # p = 
+fisher.test(oae_mat, alternative="two.sided") 
 
-# t-test
-t.test(pred_raw[male_test_idx][male_te == 1], pred_raw[-male_test_idx][female_te == 1]) # p = 
-t.test(pred_raw[male_test_idx][male_te == 0], pred_raw[-male_test_idx][female_te == 0]) # p = 
+# t-test for balance for positive class or negative class
+t.test(pred_raw[male_test_idx][male_te == 1], pred_raw[-male_test_idx][female_te == 1]) 
+t.test(pred_raw[male_test_idx][male_te == 0], pred_raw[-male_test_idx][female_te == 0])
+
+
+# False Negative Rate (FNR) [to show incompatibility between conditional use accuracy equality and equality in FNR and FPR]
+FNR_m <- FN_m / (TP_m + FN_m); FNR_m
+FNR_f <- FN_f / (TP_f + FN_f); FNR_f
+
+FNR_mat <- rbind(c(FN_m, TP_m), c(FN_f, TP_f))
+fisher.test(FNR_mat, alternative="two.sided")

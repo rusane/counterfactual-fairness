@@ -27,6 +27,8 @@ pred <- as.factor(pred)
 #save(pred, file="pred_unaware.Rdata")
 confusionMatrix(data=pred, test$credit_risk, positive='1')
 
+
+
 # Samples with original sex
 load("data_samples_og.Rdata")
 pred_raw <- predict(unaware, newdata=data_og, type="response")
